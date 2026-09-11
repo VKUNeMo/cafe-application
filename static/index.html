@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống nhận diện bệnh lá cà phê sử dụng AI - YOLOv8s + ResNet Ensemble Pipeline. Phát hiện và phân loại 7 loại bệnh/trạng thái trên lá cà phê.">
+    <title>☘️ Chẩn Đoán Bệnh Lá Cà Phê | AI Pipeline</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- HERO SECTION -->
+    <!-- ============================================================ -->
+    <header class="hero" id="hero">
+        <div class="hero__bg-pattern"></div>
+        <div class="container">
+            <div class="hero__content">
+                <div class="hero__badge">
+                    <span class="hero__badge-icon">🧠</span>
+                    <span>AI-Powered Disease Detection</span>
+                </div>
+                <h1 class="hero__title">
+                    <span class="hero__title-icon">☘️</span>
+                    Hệ Thống Chẩn Đoán<br>
+                    <span class="hero__title-accent">Bệnh Lá Cà Phê</span>
+                </h1>
+                <p class="hero__desc">
+                    Sử dụng trí tuệ nhân tạo với pipeline <strong>YOLOv8s + ResNet50 Ensemble</strong> 
+                    để phát hiện vị trí và phân loại bệnh trên lá cà phê một cách chính xác và nhanh chóng.
+                </p>
+                <div class="hero__stats">
+                    <div class="hero__stat">
+                        <span class="hero__stat-value">7</span>
+                        <span class="hero__stat-label">Loại phân loại</span>
+                    </div>
+                    <div class="hero__stat">
+                        <span class="hero__stat-value">93.8%</span>
+                        <span class="hero__stat-label">Độ chính xác</span>
+                    </div>
+                    <div class="hero__stat">
+                        <span class="hero__stat-value">3</span>
+                        <span class="hero__stat-label">Mô hình AI</span>
+                    </div>
+                </div>
+                <a href="#diagnose" class="hero__cta" id="cta-button">
+                    <span>Bắt Đầu Chẩn Đoán</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M7 17L17 7M17 7H7M17 7V17"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Disease cards floating -->
+        <div class="hero__disease-cards">
+            <div class="disease-chip" style="--chip-color: #52b788">🌿 Healthy</div>
+            <div class="disease-chip" style="--chip-color: #e76f51">🟠 Rust</div>
+            <div class="disease-chip" style="--chip-color: #9b2226">🔴 Phoma</div>
+            <div class="disease-chip" style="--chip-color: #bb3e03">🟤 Miner</div>
+            <div class="disease-chip" style="--chip-color: #6d4c41">⬛ Corticium</div>
+            <div class="disease-chip" style="--chip-color: #adb5bd">⚪ Mealy</div>
+            <div class="disease-chip" style="--chip-color: #e9c46a">🟡 Nematode</div>
+        </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- PIPELINE INFO SECTION -->
+    <!-- ============================================================ -->
+    <section class="pipeline-info" id="pipeline-info">
+        <div class="container">
+            <h2 class="section-title">Quy Trình Phân Tích</h2>
+            <div class="pipeline-steps">
+                <div class="pipeline-step">
+                    <div class="pipeline-step__icon">📷</div>
+                    <div class="pipeline-step__num">01</div>
+                    <h3>Upload / Chụp Ảnh</h3>
+                    <p>Tải ảnh lá cà phê từ thiết bị hoặc chụp trực tiếp bằng camera</p>
+                </div>
+                <div class="pipeline-step__arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-step__icon">🔍</div>
+                    <div class="pipeline-step__num">02</div>
+                    <h3>YOLOv8s Detection</h3>
+                    <p>Phát hiện và đánh dấu các vùng nghi ngờ bệnh trên lá</p>
+                </div>
+                <div class="pipeline-step__arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-step__icon">🧬</div>
+                    <div class="pipeline-step__num">03</div>
+                    <h3>ResNet Ensemble</h3>
+                    <p>Phân loại bệnh qua 2 nhánh Big + Small kết hợp bầu chọn thông minh</p>
+                </div>
+                <div class="pipeline-step__arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-step__icon">📊</div>
+                    <div class="pipeline-step__num">04</div>
+                    <h3>Kết Quả</h3>
+                    <p>Hiển thị vùng bệnh, loại bệnh và độ tin cậy trên ảnh</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DIAGNOSE SECTION -->
+    <!-- ============================================================ -->
+    <section class="diagnose" id="diagnose">
+        <div class="container">
+            <h2 class="section-title">Chẩn Đoán Bệnh</h2>
+
+            <!-- Upload Area -->
+            <div class="upload-area" id="upload-area">
+                <div class="upload-area__content" id="upload-content">
+                    <div class="upload-area__icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3>Kéo thả ảnh vào đây</h3>
+                    <p>hoặc nhấn để chọn file — Hỗ trợ JPG, JPEG, PNG</p>
+                    <input type="file" id="file-input" accept="image/jpeg,image/jpg,image/png" hidden>
+                </div>
+
+                <!-- Preview -->
+                <div class="upload-area__preview" id="upload-preview" style="display: none;">
+                    <img id="preview-image" alt="Preview ảnh đã chọn">
+                    <button class="btn btn--outline btn--sm" id="btn-clear" title="Xóa ảnh đã chọn">
+                        ✕ Xóa
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons" id="action-buttons">
+                <button class="btn btn--secondary" id="btn-camera" title="Chụp ảnh bằng camera">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    <span>Chụp Ảnh</span>
+                </button>
+                <button class="btn btn--primary btn--lg" id="btn-analyze" disabled title="Phân tích bệnh trên ảnh đã chọn">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <span>Phân Tích Bệnh</span>
+                </button>
+            </div>
+
+            <!-- Camera Modal -->
+            <div class="camera-modal" id="camera-modal" style="display: none;">
+                <div class="camera-modal__backdrop" id="camera-backdrop"></div>
+                <div class="camera-modal__content">
+                    <div class="camera-modal__header">
+                        <h3>📷 Chụp Ảnh Lá Cà Phê</h3>
+                        <button class="btn btn--icon" id="btn-camera-close" title="Đóng camera">✕</button>
+                    </div>
+                    <div class="camera-modal__body">
+                        <video id="camera-video" autoplay playsinline></video>
+                        <canvas id="camera-canvas" style="display: none;"></canvas>
+                    </div>
+                    <div class="camera-modal__actions">
+                        <button class="btn btn--secondary" id="btn-switch-camera" title="Đổi camera trước/sau">
+                            🔄 Đổi Camera
+                        </button>
+                        <button class="btn btn--primary btn--lg btn--capture" id="btn-capture" title="Chụp ảnh">
+                            📸 Chụp
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading" style="display: none;">
+                <div class="loading__spinner">
+                    <div class="loading__leaf">🍃</div>
+                </div>
+                <p class="loading__text">Đang phân tích ảnh...</p>
+                <p class="loading__sub">YOLOv8s đang phát hiện vùng bệnh → ResNet đang phân loại</p>
+            </div>
+
+            <!-- Results -->
+            <div class="results" id="results" style="display: none;">
+                <!-- Main Result Card -->
+                <div class="result-card" id="result-card">
+                    <div class="result-card__header">
+                        <span class="result-card__label">Kết Quả Chẩn Đoán</span>
+                        <span class="result-card__badge" id="result-method"></span>
+                    </div>
+                    <div class="result-card__body">
+                        <div class="result-card__disease" id="result-disease">
+                            <span class="result-card__disease-icon" id="result-icon"></span>
+                            <div>
+                                <div class="result-card__disease-name" id="result-class"></div>
+                                <div class="result-card__disease-vi" id="result-class-vi"></div>
+                            </div>
+                        </div>
+                        <div class="result-card__confidence">
+                            <div class="result-card__conf-label">Độ tin cậy</div>
+                            <div class="result-card__conf-value" id="result-confidence"></div>
+                            <div class="result-card__conf-bar">
+                                <div class="result-card__conf-fill" id="result-conf-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-card__desc" id="result-desc"></div>
+                </div>
+
+                <!-- Images Comparison -->
+                <div class="result-images" id="result-images">
+                    <div class="result-images__item">
+                        <h4>📷 Ảnh Gốc</h4>
+                        <img id="result-original" alt="Ảnh gốc">
+                    </div>
+                    <div class="result-images__item">
+                        <h4>🔬 Kết Quả Phân Tích</h4>
+                        <img id="result-annotated" alt="Ảnh đã phân tích với bounding boxes">
+                    </div>
+                </div>
+
+                <!-- Detection Details -->
+                <div class="detection-details" id="detection-details">
+                    <h3 class="detection-details__title">
+                        <span>📋 Chi Tiết Phát Hiện</span>
+                        <span class="detection-details__count" id="detection-count"></span>
+                    </h3>
+
+                    <!-- Branches -->
+                    <div class="branches">
+                        <div class="branch" id="branch-big">
+                            <div class="branch__header" data-toggle="branch-big-body">
+                                <span class="branch__icon">🔵</span>
+                                <span class="branch__name">Nhánh Big (Union BBox + Margin)</span>
+                                <span class="branch__result" id="big-result"></span>
+                                <span class="branch__toggle">▼</span>
+                            </div>
+                            <div class="branch__body" id="branch-big-body">
+                                <p class="branch__desc">Cắt vùng tối ưu bao bọc toàn bộ cụm vết bệnh → ResNet Big</p>
+                                <div class="branch__probs" id="big-probs"></div>
+                            </div>
+                        </div>
+                        <div class="branch" id="branch-small">
+                            <div class="branch__header" data-toggle="branch-small-body">
+                                <span class="branch__icon">🟡</span>
+                                <span class="branch__name">Nhánh Small (1:1 Box Merge & Voting)</span>
+                                <span class="branch__result" id="small-result"></span>
+                                <span class="branch__toggle">▼</span>
+                            </div>
+                            <div class="branch__body" id="branch-small-body">
+                                <p class="branch__desc">Gộp box liền kề ≤15px & mở rộng vuông 1:1 → ResNet Small</p>
+                                <div class="branch__probs" id="small-probs"></div>
+                                <div class="branch__boxes" id="small-boxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analyze Again -->
+                <div class="analyze-again">
+                    <button class="btn btn--primary btn--lg" id="btn-new" title="Phân tích ảnh mới">
+                        🔄 Phân Tích Ảnh Mới
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+    <footer class="footer">
+        <div class="container">
+            <p>☘️ Coffee Leaf Disease Detection — YOLOv8s + ResNet50 Ensemble Pipeline</p>
+            <p class="footer__sub">Hệ thống chẩn đoán bệnh lá cà phê sử dụng AI</p>
+        </div>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
