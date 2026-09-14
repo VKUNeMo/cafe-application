@@ -1,0 +1,85 @@
+[
+    {
+        "idx": 0,
+        "name": "healthy",
+        "disease": "Lá Khỏe Mạnh",
+        "cause": "Cây cà phê đang trong tình trạng sinh trưởng tốt, phiến lá bóng mượt, màu xanh tự nhiên, không có dấu hiệu xâm nhiễm của nấm khuẩn, sâu bọ hay tuyến trùng.",
+        "solution": [
+            "Tiếp tục duy trì chế độ bón phân cân đối N-P-K kết hợp vi lượng định kỳ theo giai đoạn phát triển.",
+            "Tưới nước giữ ẩm hợp lý vào mùa khô và thoát nước tốt trong mùa mưa để tránh ngập úng gốc.",
+            "Tỉa cành thông thoáng, cắt bỏ cành tăm, cành vô hiệu để cây quang hợp tối ưu và hạn chế mầm bệnh ẩn nấp."
+        ]
+    },
+    {
+        "idx": 1,
+        "name": "miner",
+        "disease": "Sâu Đục Lá (Sâu Vẽ Bùa)",
+        "cause": "Do ấu trùng sâu đục lá (Leucoptera coffeella) đục rỗng phần mô giữa hai lớp biểu bì lá, tạo thành các đường hầm ngoằn ngoèo hoặc vết phồng rộp màu nâu xám. Bệnh làm giảm nghiêm trọng diện tích quang hợp của lá, khiến lá rụng sớm, cây còi cọc và suy giảm năng suất vụ mùa.",
+        "solution": [
+            "Biện pháp sinh học: Bảo vệ và phát triển các loài ong ký sinh tự nhiên (như ong Eulophidae) để tiêu diệt ấu trùng sâu.",
+            "Biện pháp canh tác: Thường xuyên kiểm tra vườn, ngắt tỉa và tiêu hủy các lá bị sâu gây hại nặng để cắt đứt vòng đời sâu non.",
+            "Thuốc bảo vệ thực vật: Khi mật độ sâu cao, sử dụng các hoạt chất thấm sâu, lưu dẫn như Abamectin (Reasgant 3.6EC, Brightin 4.0EC) liều lượng 10-15ml/bình 16 lít nước.",
+            "Luân phiên sử dụng hoạt chất Emamectin benzoate hoặc Cartap (Padan 95SP) phun vào thời điểm sáng sớm hoặc chiều mát khi bướm đẻ trứng rộ."
+        ]
+    },
+    {
+        "idx": 2,
+        "name": "rust",
+        "disease": "Bệnh Gỉ Sắt Cà Phê",
+        "cause": "Do nấm Hemileia vastatrix gây ra. Nấm xâm nhiễm qua khí khổng mặt dưới lá, ban đầu tạo các đốm nhỏ màu vàng nhạt, sau đó mở rộng và xuất hiện lớp bột phấn màu vàng cam đặc trưng ở mặt dưới lá. Bệnh lây lan nhanh qua gió và giọt mưa, khiến lá rụng hàng loạt, cây trơ cành và suy kiệt.",
+        "solution": [
+            "Sử dụng thuốc gốc đồng phòng ngừa: Phun Copper Oxychloride (Champion 77WP, Coc 85WP) nồng độ 0.25 - 0.3% vào đầu mùa mưa để ngăn ngừa bào tử nấm nảy mầm.",
+            "Thuốc đặc trị lưu dẫn: Khi phát hiện vết bệnh mới chớm, phun Hexaconazole (Anvil 5SC, Chevin 5SC) lượng dùng 1-2 lít/ha (pha 40-60ml/bình 16 lít nước), phun ướt đẫm hai mặt tán lá.",
+            "Luân phiên với Azoxystrobin + Difenoconazole (Amistar Top 325SC) pha 15-20ml/bình 16 lít nước, phun lặp lại sau 7-10 ngày nếu áp lực bệnh cao.",
+            "Cắt tỉa cành tạo tán thông thoáng, hạ bớt cây che bóng quá rậm rạp để giảm độ ẩm ướt trong vườn."
+        ]
+    },
+    {
+        "idx": 3,
+        "name": "phoma",
+        "disease": "Bệnh Đốm Lá Phoma (Lở Cổ Rễ / Khô Cành)",
+        "cause": "Do nấm Phoma costarricensis (hoặc Phoma spp.) gây ra, thường bùng phát ở vùng cao, nhiều sương mù và gió lạnh. Triệu chứng đặc trưng là các vết cháy nâu sẫm lan từ chóp hoặc mép lá vào trong, trên vết bệnh có các vòng đồng tâm và chấm đen li ti (ổ bào tử). Bệnh gây rụng lá non, khô ngọn và thối đen cuống quả.",
+        "solution": [
+            "Biện pháp canh tác: Trồng đai rừng chắn gió xung quanh vườn để giảm tác hại của gió lạnh và sương muối.",
+            "Thuốc hóa học đặc trị: Phun Difenoconazole (Score 250EC) pha 10-15ml/bình 16 lít nước, phun kỹ vùng ngọn và tán lá non.",
+            "Kết hợp Mancozeb (Dithane M-45, Manzate 200) pha 40-50g/bình 16 lít nước để tăng hiệu lực bám dính và phổ diệt nấm phổ rộng.",
+            "Bón tăng cường phân Kali và Lân để nâng cao sức chống chịu rét, hạn chế bón thừa Đạm trong mùa lạnh ẩm."
+        ]
+    },
+    {
+        "idx": 4,
+        "name": "corticium",
+        "disease": "Bệnh Nấm Hồng (Corticium Salmonicolor)",
+        "cause": "Do nấm Corticium salmonicolor (hoặc Erythricium salmonicolor) gây ra trong điều kiện mùa mưa kéo dài, ẩm độ không khí cao. Vết bệnh xuất hiện ở các chẽ cành và mặt dưới lá dưới dạng mảng tơ nấm màu trắng sau chuyển sang hồng phấn hoặc xám tro. Nấm làm tắc mạch dẫn, khiến lá phía trên héo khô dính lại trên cành và chết khô cành.",
+        "solution": [
+            "Biện pháp canh tác: Cắt bỏ các cành bị bệnh sâu xuống dưới vị trí nhiễm nấm 10-15cm, thu gom ra khỏi vườn và tiêu hủy để tránh lây lan.",
+            "Xử lý vết cắt: Quét vôi hoặc quét dung dịch Booc-đô 5% lên các vết thương và cổ cành lớn sau khi cắt tỉa.",
+            "Thuốc phun phòng trừ: Phun Validamycin (Validacin 5L, Validan 5SL) pha 30-40ml/bình 16 lít nước, phun trực tiếp vào thân, chẽ cành và tán lá.",
+            "Phun phối hợp thuốc gốc đồng như Cuprous Oxide (Norshield 86.2WG) pha 25-30g/bình 16 lít nước vào giai đoạn giữa mùa mưa."
+        ]
+    },
+    {
+        "idx": 5,
+        "name": "mealy",
+        "disease": "Bệnh Rệp Sáp Hại Cà Phê",
+        "cause": "Do các loài rệp sáp (Pseudococcus spp. hoặc Planococcus citri) bám chặt vào cuống lá, chùm quả non và mặt dưới phiến lá để chích hút dịch dinh dưỡng. Chúng tiết ra lớp sáp phấn trắng bao bọc cơ thể và chất dịch ngọt thu hút kiến cùng nấm muội đen (Sooty mold) bao phủ lá, ngăn cản quang hợp khiến lá vàng úa và rụng quả hàng loạt.",
+        "solution": [
+            "Biện pháp sinh học: Sử dụng bọ rùa đỏ, ong ký sinh và bẫy dính; diệt trừ các tổ kiến vàng/kiến đen vì kiến là tác nhân chính phát tán rệp sáp.",
+            "Biện pháp cơ giới: Dùng vòi nước áp lực cao xịt thẳng vào các ổ rệp sáp để rửa trôi lớp phấn sáp bảo vệ trước khi phun thuốc.",
+            "Thuốc sinh học & dầu khoáng: Phun Dầu khoáng SK Enspray 99EC pha nồng độ 0.5% (80ml/bình 16 lít) giúp làm nghẹt thở và hòa tan lớp sáp của rệp.",
+            "Thuốc hóa học đặc trị: Khi mật độ rệp cao, sử dụng Spirotetramat (Movento 150OD) pha 16ml/bình 16 lít nước hoặc Thiamethoxam (Actara 25WG) phun kỹ vào các kẽ chùm quả và mặt dưới lá."
+        ]
+    },
+    {
+        "idx": 6,
+        "name": "nematode",
+        "disease": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+        "cause": "Do tuyến trùng ký sinh (Meloidogyne incognita, Pratylenchus coffeae) tấn công làm tổn thương hệ rễ tơ của cây cà phê, tạo các nốt sần u bướu hoặc vết loét hoại tử. Rễ bị tắc nghẽn không hút được nước và khoáng chất, dẫn đến biểu hiện trên tán lá: phiến lá chuyển vàng úa gân xanh (chứng thiếu dinh dưỡng diện rộng), lá nhỏ lại, rụng nhiều và cây suy thoái dần.",
+        "solution": [
+            "Biện pháp sinh học hàng đầu: Tưới chế phẩm nấm ký sinh tuyến trùng Paecilomyces lilacinus hoặc Trichoderma spp. kết hợp phân chuồng ủ hoai mục để tiêu diệt trứng và ấu trùng tuyến trùng trong đất.",
+            "Trồng cây xua đuổi: Trồng xen hoa cúc vạn thọ (Tagetes erecta) hoặc cây muồng hoa vàng xung quanh bồn cà phê để tiết chất kháng tuyến trùng tự nhiên.",
+            "Biện pháp hóa học đặc trị: Vào đầu và cuối mùa mưa, tưới thuốc trừ tuyến trùng gốc Fluopyram (Velum Prime 400SC) liều lượng 1-1.5 lít/ha pha nước tưới đều quanh vùng rễ.",
+            "Luân phiên sử dụng hoạt chất Abamectin (Tervigo 020SC) hoặc Fosthiazate (Nemathorin 10GR) rải gốc để xử lý triệt để ổ dịch tuyến trùng."
+        ]
+    }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "9c149621-a7a5-4ced-9649-df2af5a4b445",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145627_076e68_rust_1.png",
+    "result": 6,
+    "disease_name": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "disease": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "confidence": 0.6932,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:56:29.528586"
+  },
+  {
+    "id": "fe26b0f2-9b65-43a2-a08a-ebfb7ceed1ad",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145550_32a193_6e708fb2-40e7-47de-b2ba-47652ee455fb.jpg",
+    "result": 4,
+    "disease_name": "Bệnh Nấm Hồng (Corticium Salmonicolor)",
+    "disease": "Bệnh Nấm Hồng (Corticium Salmonicolor)",
+    "confidence": 0.9759,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:55:54.637544"
+  },
+  {
+    "id": "e85c2308-f060-487f-a94e-596a3c7b11fc",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145454_d863c5_Sâu_đục_lá_1.jpg",
+    "result": 1,
+    "disease_name": "Sâu Đục Lá (Sâu Vẽ Bùa)",
+    "disease": "Sâu Đục Lá (Sâu Vẽ Bùa)",
+    "confidence": 0.8453,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:54:56.641657"
+  },
+  {
+    "id": "bb3fb103-c9db-43fb-b7d9-efa21bcb2f3c",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145425_0dd322_Rệp_sáp_1.jpg",
+    "result": 5,
+    "disease_name": "Bệnh Rệp Sáp Hại Cà Phê",
+    "disease": "Bệnh Rệp Sáp Hại Cà Phê",
+    "confidence": 0.9343,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:54:27.633214"
+  },
+  {
+    "id": "fcb9b3f1-a18d-4e16-a88a-ae26b622ebc2",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145359_3bdd27_Hemileia_vastatrix_-_coffee_leaf_rust.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.5463,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:54:02.065283"
+  },
+  {
+    "id": "bb77f778-97b7-4d45-a923-f82ddbcbc041",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145326_d1aa21_59ld6s2un69h6uuc5253e3jwn9m6_coffee-rust-disease-02.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.4973,
+    "croods": {
+      "lat": 15.974291,
+      "long": 108.251748
+    },
+    "created_at": "2026-09-14T14:53:28.444723"
+  },
+  {
+    "id": "5263a0ee-32f4-4d5a-9d81-8fdc06d19acf",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145126_5ca91e_20260914_144401_e87e06_59ld6s2un69h6uuc5253e3jwn9m6_coffee-rust-disease-02.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.4973,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-14T14:51:28.431246"
+  },
+  {
+    "id": "5d421030-5e97-45de-987e-c027f8a6998f",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_145027_54a0f3_20260914_144401_e87e06_59ld6s2un69h6uuc5253e3jwn9m6_coffee-rust-disease-02.jpg",
+    "result": 6,
+    "disease_name": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "disease": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "confidence": 0.4131,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-14T14:50:27.819461"
+  },
+  {
+    "id": "d4cefafc-9a4c-4672-b060-1249df64003a",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260914_144401_e87e06_59ld6s2un69h6uuc5253e3jwn9m6_coffee-rust-disease-02.jpg",
+    "result": 6,
+    "disease_name": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "disease": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "confidence": 0.4131,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-14T14:44:03.857117"
+  }
+]
