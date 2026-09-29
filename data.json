@@ -81,5 +81,17 @@
             "Biện pháp hóa học đặc trị: Vào đầu và cuối mùa mưa, tưới thuốc trừ tuyến trùng gốc Fluopyram (Velum Prime 400SC) liều lượng 1-1.5 lít/ha pha nước tưới đều quanh vùng rễ.",
             "Luân phiên sử dụng hoạt chất Abamectin (Tervigo 020SC) hoặc Fosthiazate (Nemathorin 10GR) rải gốc để xử lý triệt để ổ dịch tuyến trùng."
         ]
+    },
+    {
+        "idx": 7,
+        "name": "anthracnose",
+        "disease": "Bệnh Thán Thư Cà Phê (Khô Cành, Thối Quả)",
+        "cause": "Do nấm Colletotrichum kahawae (hoặc Colletotrichum gloeosporioides) gây ra. Triệu chứng ban đầu là các đốm tròn màu nâu sẫm hoặc xám đen xuất hiện ở chóp lá và mép phiến lá, viền vết bệnh có quầng vàng rõ rệt. Nấm lây lan mạnh trong mùa mưa ẩm ướt, làm khô cháy mép lá, thối đen cuống quả và gây rụng quả non hàng loạt.",
+        "solution": [
+            "Biện pháp canh tác: Tỉa cành tạo tán thông thoáng, hạ bớt cây che bóng rậm rạp để vườn đón đủ ánh sáng và giảm độ ẩm ướt ứ đọng.",
+            "Vệ sinh vườn cây: Cắt bỏ và tiêu hủy toàn bộ cành, lá và chùm quả bị thán thư để triệt tiêu nguồn nấm bào tử lưu tồn.",
+            "Thuốc phòng ngừa: Phun các hợp chất gốc đồng như Copper Hydroxide (Kocide 53.8DF) hoặc Copper Oxychloride (Coc 85WP) định kỳ 15-20 ngày/lần vào đầu mùa mưa.",
+            "Thuốc hóa học đặc trị: Khi bệnh chớm xuất hiện, phun Azoxystrobin + Difenoconazole (Amistar Top 325SC) pha 15-20ml/bình 16 lít hoặc Tebuconazole (Nativo 750WG) ướt đẫm hai mặt lá và các chùm quả non."
+        ]
     }
 ]

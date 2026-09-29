@@ -1,5 +1,101 @@
 [
   {
+    "id": "8b64792c-9ef8-44fd-9973-ce7a11b71f44",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260929_150119_fb57f0_Risat-Arabica-1789349603368_2274769499081641400_9065315546603237607_ab711b14c5732f0c587abc976ba49364_jpg.rf.c1b289607255df144c2f197769b68d52.jpg",
+    "result": 5,
+    "disease_name": "Bệnh Rệp Sáp Hại Cà Phê",
+    "disease": "Bệnh Rệp Sáp Hại Cà Phê",
+    "confidence": 0.8711,
+    "top2_name": "Bệnh Gỉ Sắt Cà Phê",
+    "top2_confidence": 0.2144,
+    "is_uncertain": false,
+    "differential_note": "",
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-29T15:01:21.557467"
+  },
+  {
+    "id": "5c92fb85-a93c-4376-a936-9220038976c6",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260929_145158_4a9289_Risat-Arabica-1789349603368_2274769499081641400_9065315546603237607_ab711b14c5732f0c587abc976ba49364_jpg.rf.c1b289607255df144c2f197769b68d52.jpg",
+    "result": 5,
+    "disease_name": "Bệnh Rệp Sáp Hại Cà Phê",
+    "disease": "Bệnh Rệp Sáp Hại Cà Phê",
+    "confidence": 0.8711,
+    "top2_name": "Bệnh Gỉ Sắt Cà Phê",
+    "top2_confidence": 0.2144,
+    "is_uncertain": false,
+    "differential_note": "",
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-29T14:52:05.953238"
+  },
+  {
+    "id": "bb006a3c-86ac-4800-bbdc-56fefc3d5ed2",
+    "user_id": "test_user",
+    "image_url": "/image-cafe-input/20260929_144322_b07eb0_Thanthu-Robusta-1789348647135_2274769499081641400_9065315546603237607_393badb645b6c5b121addccb959f7ca2_jpg.rf.875380017d9a18ff7646ba6cf6b8ed29.jpg",
+    "result": 7,
+    "disease_name": "Bệnh Thán Thư Cà Phê (Khô Cành, Thối Quả)",
+    "disease": "Bệnh Thán Thư Cà Phê (Khô Cành, Thối Quả)",
+    "confidence": 0.9433,
+    "top2_name": "Bệnh Rệp Sáp Hại Cà Phê",
+    "top2_confidence": 0.0427,
+    "is_uncertain": false,
+    "differential_note": "",
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-29T14:43:23.594342"
+  },
+  {
+    "id": "03abd633-5d92-4b08-bd3e-838227804b1d",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260929_142147_4f7abc_Risat-Robusta-IMG_7109_jpg.rf.353a83ebaebdb0abb0dd0017064c4de8.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.6718,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-29T14:21:52.564173"
+  },
+  {
+    "id": "e1ce664f-a9d4-47ee-a84f-71464a1ce56c",
+    "user_id": "test_user",
+    "image_url": "/image-cafe-input/20260928_215655_387450_Thanthu-Robusta-1789348647135_2274769499081641400_9065315546603237607_393badb645b6c5b121addccb959f7ca2_jpg.rf.875380017d9a18ff7646ba6cf6b8ed29.jpg",
+    "result": 7,
+    "disease_name": "Bệnh Thán Thư Cà Phê (Khô Cành, Thối Quả)",
+    "disease": "Bệnh Thán Thư Cà Phê (Khô Cành, Thối Quả)",
+    "confidence": 0.9433,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-28T21:57:06.840436"
+  },
+  {
+    "id": "a940412c-8bc7-4160-9ad2-7c07a40cf6fa",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/20260922_093536_d04d49_1789348570400_2274769499081641400_9065315546603237607_cebf461610ce1dcbdd96e2ab24a1e3c7.jpg",
+    "result": 6,
+    "disease_name": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "disease": "Bệnh Tuyến Trùng Rễ / Vàng Lá Thối Rễ",
+    "confidence": 0.9653,
+    "croods": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-09-22T09:35:41.316251"
+  },
+  {
     "id": "9c149621-a7a5-4ced-9649-df2af5a4b445",
     "user_id": "default_user",
     "image_url": "/image-cafe-input/20260914_145627_076e68_rust_1.png",

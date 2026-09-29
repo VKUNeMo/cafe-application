@@ -3,7 +3,7 @@
 FASTAPI WEB APPLICATION - COFFEE LEAF DISEASE CLASSIFIER & API
 ==============================================================
 Hệ thống nhận diện bệnh lá cà phê chuẩn hóa kiến trúc theo coung21/cf-api:
-# - Pipeline: YOLOv8s (Fast Square Slicing) + ResNet Big (Width Crop) + ResNet Small (Individual Soft-Voting) + Scale-Aware Ensemble v2.
+- Pipeline: YOLOv8s (Fast Square Slicing) + ResNet Big (224×224 Width Crop) + ResNet Small (224×224 BBox Crop) + Ensemble v4 (Top-2 Differential & Gating Engine).
 - Kiến trúc Modular:
   + /predictor/predict: Dự đoán và trả về phác đồ điều trị từ data.json
   + /histories: Quản lý lịch sử chẩn đoán và bản đồ dịch tễ
@@ -52,6 +52,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    """Vô hiệu hóa cache trình duyệt đối với các tài nguyên tĩnh trong quá trình phát triển."""
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 
 # Đăng ký các router chuẩn cf-api (/predictor, /histories, /auth, /user)
 init_routes(app)

@@ -113,12 +113,17 @@ async def predict_leaf(
         confidence = pred_res["confidence"]
 
         # 5. Lưu vào lịch sử chẩn đoán
+        top2_res = pred_res.get("top2_result")
         history_record = {
             "user_id": user_id or "default_user",
             "image_url": image_url,
             "result": disease_info.get("idx", 0),
             "disease_name": disease_info.get("disease", ""),
             "confidence": confidence,
+            "top2_name": top2_res.get("disease", "") if top2_res else "",
+            "top2_confidence": pred_res.get("top2_confidence", 0.0),
+            "is_uncertain": pred_res.get("is_uncertain", False),
+            "differential_note": pred_res.get("differential_note", ""),
             "croods": {
                 "lat": lat,
                 "long": long_val
@@ -126,10 +131,14 @@ async def predict_leaf(
         }
         await add_history(history_record)
 
-        # 6. Trả về Response chuẩn hóa 100% theo cf-api kèm mở rộng trực quan
+        # 6. Trả về Response chuẩn hóa 100% theo cf-api kèm mở rộng Top-2 và phân vân
         response_payload = {
             "result": disease_info,
             "confidence": confidence,
+            "top2_result": pred_res.get("top2_result"),
+            "top2_confidence": pred_res.get("top2_confidence", 0.0),
+            "is_uncertain": pred_res.get("is_uncertain", False),
+            "differential_note": pred_res.get("differential_note", ""),
             "image_url": image_url,
             "annotated_image": pred_res["annotated_image"],
             "original_image": pred_res["original_image"],

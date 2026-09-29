@@ -55,6 +55,10 @@ async def add_history(history_data: Dict[str, Any]) -> Optional[str]:
             "disease_name": history_data.get("disease_name", ""),
             "disease": history_data.get("disease_name", ""),
             "confidence": float(history_data.get("confidence", 0.0)),
+            "top2_name": str(history_data.get("top2_name", "")),
+            "top2_confidence": float(history_data.get("top2_confidence", 0.0)),
+            "is_uncertain": bool(history_data.get("is_uncertain", False)),
+            "differential_note": str(history_data.get("differential_note", "")),
             "croods": croods,
             "created_at": datetime.now().isoformat()
         }
@@ -96,6 +100,12 @@ async def get_history_by_id(history_id: str) -> Optional[Dict[str, Any]]:
     elif isinstance(res_val, str):
         matching_obj = next((item for item in data_kb if item["name"].lower() == res_val.lower()), None)
 
+    # Ghép thông tin Top-2 nếu có
+    top2_name = target.get("top2_name", "")
+    top2_obj = None
+    if top2_name:
+        top2_obj = next((item for item in data_kb if item["name"].lower() == top2_name.lower() or item["disease"].lower() == top2_name.lower()), None)
+
     return {
         "id": target["id"],
         "user_id": target.get("user_id"),
@@ -103,6 +113,11 @@ async def get_history_by_id(history_id: str) -> Optional[Dict[str, Any]]:
         "confidence": target["confidence"],
         "croods": target.get("croods"),
         "result": matching_obj or {"idx": 99, "name": str(res_val), "disease": target.get("disease_name", ""), "cause": "", "solution": []},
+        "top2_result": top2_obj,
+        "top2_name": top2_name,
+        "top2_confidence": target.get("top2_confidence", 0.0),
+        "is_uncertain": target.get("is_uncertain", False),
+        "differential_note": target.get("differential_note", ""),
         "created_at": target["created_at"]
     }
 

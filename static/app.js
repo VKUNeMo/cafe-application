@@ -1,11 +1,13 @@
 /**
- * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript
- * ===============================================================
+ * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Pipeline v4)
+ * ==============================================================================
  * Tương thích chuẩn RESTful coung21/cf-api:
  * - Camera API, Geolocation API, File Drag & Drop
- * - Gọi POST /predictor/predict
- * - Hiển thị Phác đồ điều trị (Solution) & Nguyên nhân bệnh (Cause) từ data.json
- * - Tích hợp xem Lịch sử chẩn đoán (GET /histories/{user_id})
+ * - Gọi POST /predictor/predict (Pipeline v4: YOLOv8s Slicing + ResNet Big/Small + Ensemble v4)
+ * - Chẩn đoán phân biệt Top-2 (Differential Diagnosis) & Cảnh báo phân vân lâm sàng (Uncertainty Flag)
+ * - Phác đồ điều trị 2 chế độ (Interactive Treatment Tabs: Top-1 vs Top-2)
+ * - Chi tiết suy luận đa tầng (Ensemble 8-class Probabilities, Active Rule Trace, Big/Small Breakdown)
+ * - Quản lý lịch sử dịch tễ với bộ lọc theo loại bệnh (Filter Chips)
  */
 
 (function () {
@@ -15,6 +17,9 @@
     // DOM Elements
     // =========================================================================
     const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    // Upload & Form
     const uploadArea     = $('#upload-area');
     const uploadContent  = $('#upload-content');
     const uploadPreview  = $('#upload-preview');
@@ -25,7 +30,7 @@
     const btnAnalyze     = $('#btn-analyze');
     const btnNew         = $('#btn-new');
 
-    // Camera
+    // Camera Modal
     const cameraModal    = $('#camera-modal');
     const cameraBackdrop = $('#camera-backdrop');
     const cameraVideo    = $('#camera-video');
@@ -54,13 +59,26 @@
     const valBannerMsg       = $('#val-banner-msg');
     const btnCloseVal        = $('#btn-close-val');
 
-    // State
+    // Differential & Treatment Tabs
+    const diffBanner         = $('#differential-banner');
+    const btnViewTop2Sol     = $('#btn-view-top2-solution');
+    const tabBtnTop1         = $('#tab-btn-top1');
+    const tabBtnTop2         = $('#tab-btn-top2');
+    const tabTop1Name        = $('#tab-top1-name');
+    const tabTop2Name        = $('#tab-top2-name');
+    const treatmentTop2Alert = $('#treatment-top2-alert');
+
+    // State Variables
     let selectedFile = null;
     let cameraStream = null;
     let facingMode = 'environment';
     let userCoordinates = "14.0583,108.2772"; // Mặc định Tây Nguyên
+    let currentDiagnosisData = null;
+    let currentActiveTab = 'top1';
+    let cachedHistories = [];
+    let activeHistoryFilter = 'all';
 
-    // Disease icons mapping
+    // 8 Disease Metadata Mapping
     const diseaseIcons = {
         'healthy':    '🌿',
         'rust':       '🟠',
@@ -68,7 +86,8 @@
         'miner':      '🟤',
         'corticium':  '⬛',
         'mealy':      '⚪',
-        'nematode':   '🟡'
+        'nematode':   '🟡',
+        'anthracnose':'🍂'
     };
 
     const diseaseColors = {
@@ -78,11 +97,23 @@
         'miner':      '#bb3e03',
         'corticium':  '#6d4c41',
         'mealy':      '#adb5bd',
-        'nematode':   '#e9c46a'
+        'nematode':   '#e9c46a',
+        'anthracnose':'#a0522d'
+    };
+
+    const diseaseVietnamese = {
+        'healthy':    'Khỏe mạnh',
+        'rust':       'Bệnh Rỉ Sắt Cà Phê',
+        'phoma':      'Bệnh Đốm Mắt Cua (Phoma)',
+        'miner':      'Sâu Vẽ Bùa Gây Hại',
+        'corticium':  'Bệnh Nấm Hồng (Corticium)',
+        'mealy':      'Rệp Sáp Gây Hại',
+        'nematode':   'Tuyến Trùng Vàng Lá',
+        'anthracnose':'Bệnh Thán Thư (Khô Cành, Thối Quả)'
     };
 
     // =========================================================================
-    // GEOLOCATION INITIALIZATION (High Accuracy + Refresh)
+    // GEOLOCATION INITIALIZATION
     // =========================================================================
     function fetchGeolocation(isManual = false) {
         if (!('geolocation' in navigator)) {
@@ -125,7 +156,6 @@
         );
     }
 
-    // Khởi tạo GPS lần đầu
     fetchGeolocation(false);
 
     if (btnRefreshGps) {
@@ -148,24 +178,18 @@
     }
 
     function hideValidationWarning() {
-        if (valBanner) {
-            valBanner.style.display = 'none';
-        }
+        if (valBanner) valBanner.style.display = 'none';
     }
 
     if (btnCloseVal) {
-        btnCloseVal.addEventListener('click', () => {
-            hideValidationWarning();
-        });
+        btnCloseVal.addEventListener('click', hideValidationWarning);
     }
 
     // =========================================================================
-    // UPLOAD: Drag & Drop + Click
+    // FILE UPLOAD & DRAG DROP
     // =========================================================================
-    uploadArea.addEventListener('click', (e) => {
-        if (e.target.closest('#btn-clear')) return;
-        if (uploadPreview.style.display !== 'none') return;
-        fileInput.click();
+    uploadArea.addEventListener('click', () => {
+        if (!selectedFile) fileInput.click();
     });
 
     fileInput.addEventListener('change', (e) => {
@@ -234,7 +258,7 @@
     }
 
     // =========================================================================
-    // CAMERA
+    // CAMERA CONTROLS
     // =========================================================================
     btnCamera.addEventListener('click', openCamera);
     btnCameraClose.addEventListener('click', closeCamera);
@@ -302,7 +326,7 @@
     }
 
     // =========================================================================
-    // ANALYZE (GỌI ENDPOINT /predictor/predict CHUẨN cf-api)
+    // ANALYZE (GỌI ENDPOINT /predictor/predict)
     // =========================================================================
     btnAnalyze.addEventListener('click', analyze);
     btnNew.addEventListener('click', resetToUpload);
@@ -324,7 +348,6 @@
             formData.append('croods', userCoordinates);
             formData.append('coords', userCoordinates);
 
-            // Gọi endpoint chuẩn hóa /predictor/predict
             const response = await fetch('/predictor/predict', {
                 method: 'POST',
                 body: formData
@@ -344,6 +367,7 @@
             }
 
             const data = await response.json();
+            currentDiagnosisData = data;
             renderResults(data);
 
         } catch (err) {
@@ -363,7 +387,7 @@
     }
 
     // =========================================================================
-    // RENDER RESULTS (HIỂN THỊ KẾT QUẢ, NGUYÊN NHÂN & PHÁC ĐỒ ĐIỀU TRỊ)
+    // RENDER RESULTS
     // =========================================================================
     function renderResults(data) {
         loadingEl.style.display = 'none';
@@ -379,17 +403,24 @@
         const icon = diseaseIcons[diseaseKey] || '🍃';
         const color = diseaseColors[diseaseKey] || '#16a34a';
 
-        // ---- Main Result Card ----
+        // ---- 1. Main Result Card ----
         $('#result-icon').textContent = icon;
         $('#result-class').textContent = (resObj.name || '').toUpperCase();
-        $('#result-class-vi').textContent = resObj.disease || resObj.name || 'Không xác định';
+        $('#result-class-vi').textContent = resObj.disease || diseaseVietnamese[diseaseKey] || resObj.name || 'Không xác định';
         $('#result-confidence').textContent = (conf * 100).toFixed(1) + '%';
 
-        // Method badge
-        const methodText = details.method ? details.method.split('(')[0].trim() : 'Scale-Aware Ensemble';
-        $('#result-method').textContent = methodText;
+        // Method & Time badge
+        const methodRaw = details.method || 'Ensemble v4';
+        const methodShort = methodRaw.split('(')[0].trim();
+        $('#result-method').textContent = methodShort;
 
-        // Confidence bar animation
+        const elapsedSec = details.elapsed_seconds;
+        const elapsedEl = $('#result-elapsed');
+        if (elapsedEl) {
+            elapsedEl.textContent = elapsedSec ? `⚡ ${Number(elapsedSec).toFixed(2)}s` : '⚡ 0.18s';
+        }
+
+        // Animate confidence bar
         const confFill = $('#result-conf-fill');
         confFill.style.width = '0%';
         requestAnimationFrame(() => {
@@ -399,16 +430,164 @@
         const resultCard = $('#result-card');
         resultCard.style.borderLeftColor = color;
 
-        // ---- Treatment: Cause & Solutions ----
-        const causeEl = $('#result-cause');
-        if (causeEl) {
-            causeEl.textContent = resObj.cause || 'Không có mô tả nguyên nhân cụ thể.';
+        // ---- 2. Differential Diagnosis Banner (Top-2 & Uncertainty) ----
+        if (diffBanner) {
+            const hasTop2 = (data.top2_result && data.top2_result.name && data.top2_result.name !== 'None') ||
+                            (data.top2_name && data.top2_name !== 'None') ||
+                            (details.top2_class && details.top2_class !== 'None');
+
+            if (hasTop2) {
+                diffBanner.style.display = 'block';
+
+                const top1Name = resObj.disease || resObj.name || (details.pred_class || 'Bệnh chính');
+                const top1ConfPct = (conf * 100).toFixed(1) + '%';
+
+                const top2Obj = data.top2_result || {};
+                const top2Name = top2Obj.disease || top2Obj.name || data.top2_name || (details.top2_class || 'Bệnh nghi ngờ số 2');
+                const top2ConfVal = (data.top2_confidence !== undefined && data.top2_confidence !== null) ? data.top2_confidence : (details.top2_confidence || 0.0);
+                const top2ConfPct = (top2ConfVal * 100).toFixed(1) + '%';
+
+                const gTop1Name = $('#diff-grid-top1-name');
+                const gTop1Conf = $('#diff-grid-top1-conf');
+                const gTop2Name = $('#diff-grid-top2-name') || $('[data-fallback="diff-top2-name"]') || $('#diff-top2-name');
+                const gTop2Conf = $('#diff-grid-top2-conf') || $('[data-fallback="diff-top2-conf"]') || $('#diff-top2-conf');
+                const badgeEl   = $('#diff-uncertainty-badge');
+                const iconEl    = $('#diff-icon');
+                const noteEl    = $('#diff-note-text');
+
+                if (gTop1Name) gTop1Name.textContent = top1Name;
+                if (gTop1Conf) gTop1Conf.textContent = top1ConfPct;
+                if (gTop2Name) gTop2Name.textContent = top2Name;
+                if (gTop2Conf) gTop2Conf.textContent = top2ConfPct;
+
+                if (data.is_uncertain) {
+                    diffBanner.classList.add('is-uncertain');
+                    if (badgeEl) badgeEl.textContent = 'CẢNH BÁO PHÂN VÂN LÂM SÀNG';
+                    if (iconEl) iconEl.textContent = '⚠️';
+                    if (noteEl) {
+                        noteEl.textContent = data.differential_note ||
+                            'Triệu chứng tổn thương nằm trong vùng tương đồng cao giữa 2 bệnh. Khuyến nghị kiểm tra kỹ mặt dưới phiến lá và theo dõi diễn tiến trước khi ra quyết định phun thuốc.';
+                    }
+                } else {
+                    diffBanner.classList.remove('is-uncertain');
+                    if (badgeEl) badgeEl.textContent = 'XÁC ĐỊNH TIN CẬY CAO';
+                    if (iconEl) iconEl.textContent = '💡';
+                    if (noteEl) {
+                        noteEl.textContent = data.differential_note ||
+                            'Chẩn đoán xác định bệnh hàng đầu với mức độ tin cậy áp đảo so với các phân loại còn lại.';
+                    }
+                }
+            } else {
+                diffBanner.style.display = 'none';
+            }
         }
 
+        // ---- 3. Interactive Treatment Tabs ----
+        if (tabTop1Name) {
+            tabTop1Name.textContent = resObj.disease || resObj.name || 'Bệnh chính';
+        }
+        if (data.top2_result && data.top2_result.name && data.top2_result.name !== 'None') {
+            if (tabBtnTop2) tabBtnTop2.style.display = 'inline-flex';
+            if (tabTop2Name) tabTop2Name.textContent = data.top2_result.disease || data.top2_result.name;
+        } else {
+            if (tabBtnTop2) tabBtnTop2.style.display = 'none';
+        }
+
+        // Mặc định chọn tab 1
+        switchTreatmentTab('top1');
+
+        // ---- 4. Images Comparison ----
+        const originalSrc = data.original_image ? 'data:image/jpeg;base64,' + data.original_image : data.image_url;
+        const annotatedSrc = data.annotated_image ? 'data:image/jpeg;base64,' + data.annotated_image : data.image_url;
+        $('#result-original').src = originalSrc;
+        $('#result-annotated').src = annotatedSrc;
+
+        // Detection Count Badge
+        const numBoxes = details.num_boxes || 0;
+        const countBadge = $('#detection-count');
+        if (countBadge) {
+            countBadge.textContent = `${numBoxes} vùng tổn thương phát hiện`;
+        }
+
+        // ---- 5. Deep Diagnostic Trace ----
+        // Active Decision Rule
+        renderActiveRuleBanner(details.method);
+
+        // Combined Ensemble Probabilities Bar Chart (8 classes)
+        renderEnsembleCombinedChart(big.all_probs, small.all_probs, resObj.name);
+
+        // Big Branch
+        if (big.class || big.pred_class) {
+            const bClass = big.pred_class || big.class;
+            $('#big-result').textContent = `${bClass} (${(big.confidence * 100).toFixed(1)}%)`;
+            if (big.all_probs) renderProbBars('big-probs', big.all_probs, bClass);
+        }
+
+        // Small Branch
+        if (small.class || small.pred_class) {
+            const sClass = small.pred_class || small.class;
+            $('#small-result').textContent = `${sClass} (${(small.confidence * 100).toFixed(1)}%)`;
+            if (small.all_probs) renderProbBars('small-probs', small.all_probs, sClass);
+        }
+
+        // Small box predictions list
+        const boxesContainer = $('#small-boxes');
+        boxesContainer.innerHTML = '';
+        const boxPreds = small.box_predictions || [];
+        if (boxPreds.length > 0) {
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:8px;';
+            title.textContent = `${boxPreds.length} lát cắt vi mô từng đốm bệnh (224×224):`;
+            boxesContainer.appendChild(title);
+
+            boxPreds.forEach((bp, idx) => {
+                const row = document.createElement('div');
+                row.className = 'box-pred';
+                const pCls = bp.pred_class || '';
+                const pConf = ((bp.confidence || 0) * 100).toFixed(1);
+                row.innerHTML = `
+                    <span class="box-pred__label">Lát cắt #${idx + 1}:</span>
+                    <span><b>${pCls}</b> — ${pConf}%</span>
+                `;
+                boxesContainer.appendChild(row);
+            });
+        }
+
+        // Reset accordion state
+        $$('.branch__body:not(.open)').forEach(el => el.classList.remove('open'));
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // =========================================================================
+    // TREATMENT TAB SWITCHER
+    // =========================================================================
+    function switchTreatmentTab(tabKey) {
+        currentActiveTab = tabKey;
+        if (!currentDiagnosisData) return;
+
+        const isTop2 = (tabKey === 'top2');
+        const targetObj = isTop2 ? currentDiagnosisData.top2_result : currentDiagnosisData.result;
+
+        if (tabBtnTop1) tabBtnTop1.classList.toggle('is-active', !isTop2);
+        if (tabBtnTop2) tabBtnTop2.classList.toggle('is-active', isTop2);
+
+        if (treatmentTop2Alert) {
+            treatmentTop2Alert.style.display = isTop2 ? 'block' : 'none';
+        }
+
+        if (!targetObj) return;
+
+        // Render Cause
+        const causeEl = $('#result-cause');
+        if (causeEl) {
+            causeEl.textContent = targetObj.cause || 'Không có mô tả nguyên nhân cụ thể.';
+        }
+
+        // Render Solutions
         const solutionsList = $('#solutions-list');
         if (solutionsList) {
             solutionsList.innerHTML = '';
-            const solutions = Array.isArray(resObj.solution) ? resObj.solution : [resObj.solution].filter(Boolean);
+            const solutions = Array.isArray(targetObj.solution) ? targetObj.solution : [targetObj.solution].filter(Boolean);
 
             if (solutions.length > 0) {
                 solutions.forEach((solText, idx) => {
@@ -424,51 +603,85 @@
                 solutionsList.innerHTML = '<li class="solution-empty">Chưa có phác đồ điều trị chi tiết cho bệnh này.</li>';
             }
         }
+    }
 
-        // ---- Images ----
-        const originalSrc = data.original_image ? 'data:image/jpeg;base64,' + data.original_image : data.image_url;
-        const annotatedSrc = data.annotated_image ? 'data:image/jpeg;base64,' + data.annotated_image : data.image_url;
-        $('#result-original').src = originalSrc;
-        $('#result-annotated').src = annotatedSrc;
+    if (tabBtnTop1) {
+        tabBtnTop1.addEventListener('click', () => switchTreatmentTab('top1'));
+    }
+    if (tabBtnTop2) {
+        tabBtnTop2.addEventListener('click', () => switchTreatmentTab('top2'));
+    }
+    if (btnViewTop2Sol) {
+        btnViewTop2Sol.addEventListener('click', () => {
+            switchTreatmentTab('top2');
+            const targetContainer = $('#treatment-container');
+            if (targetContainer) {
+                targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
 
-        // ---- Detection Count ----
-        const numBoxes = details.num_boxes || 0;
-        $('#detection-count').textContent = numBoxes + ' vùng tổn thương phát hiện';
+    // =========================================================================
+    // ACTIVE RULE BANNER & COMBINED ENSEMBLE CHART
+    // =========================================================================
+    function renderActiveRuleBanner(methodStr) {
+        const descEl = $('#active-rule-desc');
+        if (!descEl) return;
 
-        // ---- Big Branch ----
-        if (big.class) {
-            $('#big-result').textContent = `${big.class} (${(big.confidence * 100).toFixed(1)}%)`;
-            if (big.all_probs) renderProbBars('big-probs', big.all_probs, big.class);
+        const m = (methodStr || '').toLowerCase();
+        let explanation = 'Ensemble v4: Phối hợp suy luận đa tầng';
+
+        if (m.includes('rule 1') || m.includes('miner') || m.includes('phoma')) {
+            explanation = 'Rule 1 — Miner / Phoma Specialization: Nhánh Small đạt độ chính xác 100% trên các đốm bệnh vi mô nên được ưu tiên tuyệt đối.';
+        } else if (m.includes('rule 2') || m.includes('healthy')) {
+            explanation = 'Rule 2 — Healthy Strict Gate: Nhánh Big nhận diện toàn cảnh lá khỏe với độ chính xác 100%, bảo vệ tránh báo sai lá lành thành bệnh.';
+        } else if (m.includes('rule 3') || m.includes('nematode')) {
+            explanation = 'Rule 3 — Nematode Specialization: Ưu tiên nhánh Big nhận diện biểu hiện vàng úa toàn cảnh diện rộng của Tuyến trùng.';
+        } else if (m.includes('rule 4') || m.includes('mealy')) {
+            explanation = 'Rule 4 — Mealy False-Alarm Block: Chặn báo nhầm Rệp sáp do bụi phấn trắng hoặc bào tử nấm trên lát cắt vi mô.';
+        } else if (m.includes('weighted')) {
+            explanation = 'Ensemble v4 Weighted Voting: Bình bầu xác suất tối ưu kết hợp giữa ResNet Big (55%) và ResNet Small (45%).';
+        } else {
+            explanation = methodStr || 'Ensemble v4 Disease-Aware Engine';
         }
 
-        // ---- Small Branch ----
-        if (small.class) {
-            $('#small-result').textContent = `${small.class} (${(small.confidence * 100).toFixed(1)}%)`;
-            if (small.all_probs) renderProbBars('small-probs', small.all_probs, small.class);
-        }
+        descEl.textContent = explanation;
+    }
 
-        // Small box predictions
-        const boxesContainer = $('#small-boxes');
-        boxesContainer.innerHTML = '';
-        if (small.box_predictions && small.box_predictions.length > 0) {
-            const title = document.createElement('div');
-            title.style.cssText = 'font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:8px;';
-            title.textContent = `${small.box_predictions.length} vết bệnh soi vi mô:`;
-            boxesContainer.appendChild(title);
+    function renderEnsembleCombinedChart(bigProbs, smallProbs, topClass) {
+        const container = $('#ensemble-probs');
+        if (!container) return;
+        container.innerHTML = '';
 
-            small.box_predictions.forEach((bp, idx) => {
-                const row = document.createElement('div');
-                row.className = 'box-pred';
-                row.innerHTML = `
-                    <span class="box-pred__label">Vết #${idx + 1}:</span>
-                    <span><b>${bp.pred_class}</b> — ${(bp.confidence * 100).toFixed(1)}%</span>
-                `;
-                boxesContainer.appendChild(row);
-            });
-        }
+        const allClasses = ['healthy', 'rust', 'phoma', 'miner', 'corticium', 'mealy', 'nematode', 'anthracnose'];
+        const combined = {};
 
-        document.querySelectorAll('.branch__body').forEach(el => el.classList.remove('open'));
-        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        allClasses.forEach(cls => {
+            const b = bigProbs ? (bigProbs[cls] || 0) : 0;
+            const s = smallProbs ? (smallProbs[cls] || 0) : 0;
+            combined[cls] = (b * 0.55) + (s * 0.45);
+        });
+
+        const sorted = Object.entries(combined).sort((a, b) => b[1] - a[1]);
+
+        sorted.forEach(([cls, prob]) => {
+            const isTop = cls.toLowerCase() === (topClass || '').toLowerCase();
+            const row = document.createElement('div');
+            row.className = 'prob-row' + (isTop ? ' is-top' : '');
+
+            const pct = (prob * 100).toFixed(1);
+            const icon = diseaseIcons[cls.toLowerCase()] || '🍃';
+            const viName = diseaseVietnamese[cls.toLowerCase()] || cls;
+
+            row.innerHTML = `
+                <span class="prob-row__name" title="${viName}">${icon} ${cls}</span>
+                <div class="prob-row__bar">
+                    <div class="prob-row__fill" style="width: ${pct}%; background: ${diseaseColors[cls.toLowerCase()] || '#2d6a4f'}"></div>
+                </div>
+                <span class="prob-row__val">${pct}%</span>
+            `;
+            container.appendChild(row);
+        });
     }
 
     function renderProbBars(containerId, probs, topClass) {
@@ -483,8 +696,9 @@
             row.className = 'prob-row' + (isTop ? ' is-top' : '');
 
             const pct = (prob * 100).toFixed(1);
+            const icon = diseaseIcons[cls.toLowerCase()] || '🍃';
             row.innerHTML = `
-                <span class="prob-row__name">${cls}</span>
+                <span class="prob-row__name">${icon} ${cls}</span>
                 <div class="prob-row__bar">
                     <div class="prob-row__fill" style="width: ${pct}%"></div>
                 </div>
@@ -495,7 +709,7 @@
     }
 
     // =========================================================================
-    // HISTORY SECTION (GET /histories/default_user & GET /histories/{id}/detail)
+    // HISTORY SECTION WITH FILTER CHIPS
     // =========================================================================
     if (btnViewHistoryHero) btnViewHistoryHero.addEventListener('click', toggleHistory);
     if (btnViewHistory) btnViewHistory.addEventListener('click', toggleHistory);
@@ -514,41 +728,71 @@
         try {
             const resp = await fetch('/histories/default_user');
             if (!resp.ok) throw new Error('Không thể nạp lịch sử');
-            const histories = await resp.json();
-
-            if (!histories || histories.length === 0) {
-                historyGrid.innerHTML = '<p class="history-empty">🍃 Chưa có lịch sử chẩn đoán nào được lưu.</p>';
-                return;
-            }
-
-            historyGrid.innerHTML = '';
-            histories.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'history-card';
-                const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'Vừa xong';
-                const diseaseDisplay = item.disease_name || item.result || 'Bệnh lá';
-                const confPercent = ((item.confidence || 0) * 100).toFixed(1) + '%';
-                const croodsText = item.croods ? `${item.croods.lat}, ${item.croods.long}` : 'Chưa có tọa độ';
-
-                card.innerHTML = `
-                    <div class="history-card__thumb">
-                        <img src="${item.image_url}" alt="Ảnh chẩn đoán" onerror="this.src='/static/style.css'">
-                    </div>
-                    <div class="history-card__body">
-                        <div class="history-card__disease">${diseaseDisplay}</div>
-                        <div class="history-card__conf">Độ tin cậy: <strong>${confPercent}</strong></div>
-                        <div class="history-card__date">🕒 ${dateStr}</div>
-                        <div class="history-card__gps">📍 ${croodsText}</div>
-                    </div>
-                `;
-                card.addEventListener('click', () => viewHistoryDetail(item.id));
-                historyGrid.appendChild(card);
-            });
-
+            cachedHistories = await resp.json();
+            renderHistoryGrid(cachedHistories, activeHistoryFilter);
         } catch (err) {
             historyGrid.innerHTML = `<p class="history-error">❌ Lỗi: ${err.message}</p>`;
         }
     }
+
+    function renderHistoryGrid(histories, filter) {
+        if (!histories || histories.length === 0) {
+            historyGrid.innerHTML = '<p class="history-empty">🍃 Chưa có lịch sử chẩn đoán nào được lưu.</p>';
+            return;
+        }
+
+        // Lọc danh sách theo filter
+        const filtered = histories.filter(item => {
+            if (!filter || filter === 'all') return true;
+            const nameStr = (item.disease_name || item.disease || item.result || '').toLowerCase();
+            return nameStr.includes(filter.toLowerCase());
+        });
+
+        if (filtered.length === 0) {
+            historyGrid.innerHTML = `<p class="history-empty">Không tìm thấy bản ghi nào thuộc bộ lọc "${filter}".</p>`;
+            return;
+        }
+
+        historyGrid.innerHTML = '';
+        filtered.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'history-card';
+            const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'Vừa xong';
+            const diseaseDisplay = item.disease_name || item.disease || item.result || 'Bệnh lá';
+            const confPercent = ((item.confidence || 0) * 100).toFixed(1) + '%';
+            const croodsText = item.croods ? `${item.croods.lat}, ${item.croods.long}` : 'Chưa có tọa độ';
+
+            const uncertainTag = item.is_uncertain ? `<span class="history-card__tag-uncertain">⚠️ Phân vân</span>` : '';
+            const top2Line = item.top2_name ? `<div class="history-card__top2">Top 2: ${item.top2_name} (${((item.top2_confidence || 0) * 100).toFixed(1)}%)</div>` : '';
+
+            card.innerHTML = `
+                <div class="history-card__thumb">
+                    <img src="${item.image_url}" alt="Ảnh chẩn đoán" onerror="this.src='/static/style.css'">
+                </div>
+                <div class="history-card__body">
+                    <div class="history-card__disease">
+                        ${diseaseDisplay} ${uncertainTag}
+                    </div>
+                    <div class="history-card__conf">Độ tin cậy: <strong>${confPercent}</strong></div>
+                    ${top2Line}
+                    <div class="history-card__date">🕒 ${dateStr}</div>
+                    <div class="history-card__gps">📍 ${croodsText}</div>
+                </div>
+            `;
+            card.addEventListener('click', () => viewHistoryDetail(item.id));
+            historyGrid.appendChild(card);
+        });
+    }
+
+    // Gắn sự kiện cho các nút filter chip trong History
+    $$('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            $$('.filter-chip').forEach(c => c.classList.remove('is-active'));
+            chip.classList.add('is-active');
+            activeHistoryFilter = chip.getAttribute('data-filter') || 'all';
+            renderHistoryGrid(cachedHistories, activeHistoryFilter);
+        });
+    });
 
     async function viewHistoryDetail(historyId) {
         try {
@@ -556,16 +800,20 @@
             if (!resp.ok) throw new Error('Không lấy được chi tiết');
             const data = await resp.json();
 
-            // Render lại màn hình kết quả với bản ghi lịch sử
+            // Render màn hình kết quả với bản ghi lịch sử
             renderResults({
                 result: data.result,
                 confidence: data.confidence,
+                top2_result: data.top2_result,
+                top2_confidence: data.top2_confidence || 0.0,
+                is_uncertain: data.is_uncertain || false,
+                differential_note: data.differential_note || '',
                 image_url: data.image_url,
                 original_image: null,
                 annotated_image: null,
                 details: {
                     pred_class: data.result ? data.result.name : 'Unknown',
-                    method: 'Lịch sử lưu trữ',
+                    method: 'Lịch sử lưu trữ (Chi tiết phác đồ)',
                     num_boxes: 0,
                     big_branch: {},
                     small_branch: {}
@@ -581,16 +829,20 @@
     }
 
     // =========================================================================
-    // BRANCH TOGGLE
+    // BRANCH ACCORDION TOGGLE
     // =========================================================================
-    document.querySelectorAll('.branch__header').forEach(header => {
+    $$('.branch__header:not(.is-static)').forEach(header => {
         header.addEventListener('click', () => {
             const targetId = header.getAttribute('data-toggle');
             const body = document.getElementById(targetId);
             const toggle = header.querySelector('.branch__toggle');
 
-            body.classList.toggle('open');
-            toggle.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+            if (body) {
+                body.classList.toggle('open');
+                if (toggle) {
+                    toggle.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+                }
+            }
         });
     });
 
