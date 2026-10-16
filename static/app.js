@@ -1,9 +1,9 @@
 /**
- * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Pipeline v4)
+ * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Pipeline v5)
  * ==============================================================================
  * Tương thích chuẩn RESTful coung21/cf-api:
  * - Camera API, Geolocation API, File Drag & Drop
- * - Gọi POST /predictor/predict (Pipeline v4: YOLOv8s Slicing + ResNet Big/Small + Ensemble v4)
+ * - Gọi POST /predictor/predict (Pipeline v5: YOLOv8s Slicing + ResNet Big/Small + Ensemble v5)
  * - Chẩn đoán phân biệt Top-2 (Differential Diagnosis) & Cảnh báo phân vân lâm sàng (Uncertainty Flag)
  * - Phác đồ điều trị 2 chế độ (Interactive Treatment Tabs: Top-1 vs Top-2)
  * - Chi tiết suy luận đa tầng (Ensemble 8-class Probabilities, Active Rule Trace, Big/Small Breakdown)
@@ -18,6 +18,9 @@
     // =========================================================================
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
 
     // Upload & Form
     const uploadArea     = $('#upload-area');
@@ -72,7 +75,7 @@
     let selectedFile = null;
     let cameraStream = null;
     let facingMode = 'environment';
-    let userCoordinates = "14.0583,108.2772"; // Mặc định Tây Nguyên
+    let userCoordinates = null;
     let currentDiagnosisData = null;
     let currentActiveTab = 'top1';
     let cachedHistories = [];
@@ -117,6 +120,7 @@
     // =========================================================================
     function fetchGeolocation(isManual = false) {
         if (!('geolocation' in navigator)) {
+            userCoordinates = null;
             if (gpsText) gpsText.textContent = `Tọa độ vườn: 14.0583° N, 108.2772° E (Trình duyệt không hỗ trợ GPS)`;
             return;
         }
@@ -139,7 +143,7 @@
                 }
             },
             (err) => {
-                userCoordinates = "14.0583,108.2772";
+                userCoordinates = null;
                 if (gpsText) {
                     gpsText.textContent = `Tọa độ vườn: 14.0583° N, 108.2772° E (Tây Nguyên - Mặc định)`;
                 }
@@ -344,9 +348,7 @@
         try {
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('user_id', 'default_user');
-            formData.append('croods', userCoordinates);
-            formData.append('coords', userCoordinates);
+            if (userCoordinates) formData.append('coords', userCoordinates);
 
             const response = await fetch('/predictor/predict', {
                 method: 'POST',
@@ -410,7 +412,7 @@
         $('#result-confidence').textContent = (conf * 100).toFixed(1) + '%';
 
         // Method & Time badge
-        const methodRaw = details.method || 'Ensemble v4';
+        const methodRaw = details.method || 'Ensemble v5';
         const methodShort = methodRaw.split('(')[0].trim();
         $('#result-method').textContent = methodShort;
 
@@ -595,7 +597,7 @@
                     li.className = 'solution-item';
                     li.innerHTML = `
                         <span class="solution-num">${idx + 1}</span>
-                        <div class="solution-content">${solText}</div>
+                        <div class="solution-content">${escapeHtml(solText)}</div>
                     `;
                     solutionsList.appendChild(li);
                 });
@@ -628,24 +630,25 @@
         const descEl = $('#active-rule-desc');
         if (!descEl) return;
 
-        const m = (methodStr || '').toLowerCase();
-        let explanation = 'Ensemble v4: Phối hợp suy luận đa tầng';
-
-        if (m.includes('rule 1') || m.includes('miner') || m.includes('phoma')) {
-            explanation = 'Rule 1 — Miner / Phoma Specialization: Nhánh Small đạt độ chính xác 100% trên các đốm bệnh vi mô nên được ưu tiên tuyệt đối.';
-        } else if (m.includes('rule 2') || m.includes('healthy')) {
-            explanation = 'Rule 2 — Healthy Strict Gate: Nhánh Big nhận diện toàn cảnh lá khỏe với độ chính xác 100%, bảo vệ tránh báo sai lá lành thành bệnh.';
-        } else if (m.includes('rule 3') || m.includes('nematode')) {
-            explanation = 'Rule 3 — Nematode Specialization: Ưu tiên nhánh Big nhận diện biểu hiện vàng úa toàn cảnh diện rộng của Tuyến trùng.';
-        } else if (m.includes('rule 4') || m.includes('mealy')) {
-            explanation = 'Rule 4 — Mealy False-Alarm Block: Chặn báo nhầm Rệp sáp do bụi phấn trắng hoặc bào tử nấm trên lát cắt vi mô.';
-        } else if (m.includes('weighted')) {
-            explanation = 'Ensemble v4 Weighted Voting: Bình bầu xác suất tối ưu kết hợp giữa ResNet Big (55%) và ResNet Small (45%).';
-        } else {
-            explanation = methodStr || 'Ensemble v4 Disease-Aware Engine';
-        }
-
-        descEl.textContent = explanation;
+        const explanations = {
+            agreement: 'Hai nhánh Big và Small cùng dự đoán một bệnh.',
+            small_specialist_miner_phoma: 'Nhánh Small được ưu tiên khi phân biệt Miner và Phoma.',
+            big_confident_miner_phoma: 'Nhánh Big được ưu tiên khi Small chưa đủ tin cậy.',
+            big_healthy_no_box: 'Nhánh Big dự đoán lá khỏe và YOLO không tìm thấy vùng bệnh.',
+            small_high_conf_disease_override: 'Nhánh Small nhận bệnh với độ tin cậy cao nên ghi đè dự đoán lá khỏe.',
+            big_healthy_precedence: 'Nhánh Big được ưu tiên khi Small chưa đủ bằng chứng để ghi đè lá khỏe.',
+            small_rust_override: 'Nhánh Small được ưu tiên khi nhận diện gỉ sắt.',
+            big_specialist_nematode_anthracnose: 'Nhánh Big được ưu tiên khi nhận diện tuyến trùng hoặc thán thư.',
+            small_mealy_extreme_conf: 'Nhánh Small nhận diện rệp sáp với độ tin cậy rất cao.',
+            reject_small_mealy_false_alarm: 'Nhánh Big được ưu tiên để giảm báo nhầm rệp sáp.',
+            small_confident_rescue: 'Nhánh Small được ưu tiên khi Big chưa đủ tin cậy.',
+            small_confident_cross_check: 'Nhánh Small được ưu tiên sau bước kiểm tra chéo.',
+            big_confident: 'Nhánh Big được ưu tiên nhờ độ tin cậy cao.',
+            default_big: 'Nhánh Big có độ tin cậy cao hơn.',
+            default_small: 'Nhánh Small có độ tin cậy cao hơn.',
+            default_big_over_small_mealy: 'Nhánh Big được ưu tiên để giảm báo nhầm rệp sáp.'
+        };
+        descEl.textContent = explanations[methodStr] || methodStr || 'Ensemble v5';
     }
 
     function renderEnsembleCombinedChart(bigProbs, smallProbs, topClass) {
@@ -749,7 +752,7 @@
         });
 
         if (filtered.length === 0) {
-            historyGrid.innerHTML = `<p class="history-empty">Không tìm thấy bản ghi nào thuộc bộ lọc "${filter}".</p>`;
+            historyGrid.innerHTML = `<p class="history-empty">Không tìm thấy bản ghi nào thuộc bộ lọc "${escapeHtml(filter)}".</p>`;
             return;
         }
 
@@ -760,23 +763,23 @@
             const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'Vừa xong';
             const diseaseDisplay = item.disease_name || item.disease || item.result || 'Bệnh lá';
             const confPercent = ((item.confidence || 0) * 100).toFixed(1) + '%';
-            const croodsText = item.croods ? `${item.croods.lat}, ${item.croods.long}` : 'Chưa có tọa độ';
+            const coordsText = item.coords ? `${item.coords.lat}, ${item.coords.long}` : 'Chưa có tọa độ';
 
             const uncertainTag = item.is_uncertain ? `<span class="history-card__tag-uncertain">⚠️ Phân vân</span>` : '';
-            const top2Line = item.top2_name ? `<div class="history-card__top2">Top 2: ${item.top2_name} (${((item.top2_confidence || 0) * 100).toFixed(1)}%)</div>` : '';
+            const top2Line = item.top2_name ? `<div class="history-card__top2">Top 2: ${escapeHtml(item.top2_name)} (${((item.top2_confidence || 0) * 100).toFixed(1)}%)</div>` : '';
 
             card.innerHTML = `
                 <div class="history-card__thumb">
-                    <img src="${item.image_url}" alt="Ảnh chẩn đoán" onerror="this.src='/static/style.css'">
+                    <img src="${escapeHtml(item.image_url)}" alt="Ảnh chẩn đoán">
                 </div>
                 <div class="history-card__body">
                     <div class="history-card__disease">
-                        ${diseaseDisplay} ${uncertainTag}
+                        ${escapeHtml(diseaseDisplay)} ${uncertainTag}
                     </div>
                     <div class="history-card__conf">Độ tin cậy: <strong>${confPercent}</strong></div>
                     ${top2Line}
                     <div class="history-card__date">🕒 ${dateStr}</div>
-                    <div class="history-card__gps">📍 ${croodsText}</div>
+                    <div class="history-card__gps">📍 ${escapeHtml(coordsText)}</div>
                 </div>
             `;
             card.addEventListener('click', () => viewHistoryDetail(item.id));

@@ -7,4 +7,6 @@ opencv-python
 torch
 torchvision
 ultralytics
+timm
 PyYAML
+pydantic

@@ -1,5 +1,59 @@
 [
   {
+    "id": "9cd60c66-8ddb-4af2-89be-0f83c499d3e1",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/c6af6ae01bf44321a9939356413405d0.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.9301,
+    "top2_name": "",
+    "top2_confidence": 0.0,
+    "is_uncertain": false,
+    "differential_note": "",
+    "coords": {
+      "lat": 14.0583,
+      "long": 108.2772
+    },
+    "created_at": "2026-10-16T15:41:01.410012"
+  },
+  {
+    "id": "5e12b43a-b816-40da-bc41-cf1575608453",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/d231401ad3ad432f85f82e88ce00f411.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.9301,
+    "top2_name": "",
+    "top2_confidence": 0.0,
+    "is_uncertain": false,
+    "differential_note": "",
+    "croods": {
+      "lat": 15.974363,
+      "long": 108.252128
+    },
+    "created_at": "2026-10-16T15:08:33.773450"
+  },
+  {
+    "id": "eaa9bc59-a474-4c8b-93f6-b39a14227804",
+    "user_id": "default_user",
+    "image_url": "/image-cafe-input/3bf2aead762f42b2bdb3b7836b52f103.jpg",
+    "result": 2,
+    "disease_name": "Bệnh Gỉ Sắt Cà Phê",
+    "disease": "Bệnh Gỉ Sắt Cà Phê",
+    "confidence": 0.9301,
+    "top2_name": "",
+    "top2_confidence": 0.0,
+    "is_uncertain": false,
+    "differential_note": "",
+    "croods": {
+      "lat": 15.974369,
+      "long": 108.252141
+    },
+    "created_at": "2026-10-16T14:57:05.685813"
+  },
+  {
     "id": "8b64792c-9ef8-44fd-9973-ce7a11b71f44",
     "user_id": "default_user",
     "image_url": "/image-cafe-input/20260929_150119_fb57f0_Risat-Arabica-1789349603368_2274769499081641400_9065315546603237607_ab711b14c5732f0c587abc976ba49364_jpg.rf.c1b289607255df144c2f197769b68d52.jpg",

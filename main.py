@@ -3,7 +3,7 @@
 FASTAPI WEB APPLICATION - COFFEE LEAF DISEASE CLASSIFIER & API
 ==============================================================
 Hệ thống nhận diện bệnh lá cà phê chuẩn hóa kiến trúc theo coung21/cf-api:
-- Pipeline: YOLOv8s (Fast Square Slicing) + ResNet Big (224×224 Width Crop) + ResNet Small (224×224 BBox Crop) + Ensemble v4 (Top-2 Differential & Gating Engine).
+- Pipeline: YOLOv8s (Fast Square Slicing) + Big/Small Classifier + Ensemble v5.
 - Kiến trúc Modular:
   + /predictor/predict: Dự đoán và trả về phác đồ điều trị từ data.json
   + /histories: Quản lý lịch sử chẩn đoán và bản đồ dịch tễ
@@ -13,42 +13,55 @@ Hệ thống nhận diện bệnh lá cà phê chuẩn hóa kiến trúc theo co
 - Frontend Web: Tích hợp đầy đủ tại / (HTML, JS, CSS)
 """
 
+import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 
-# Thiết lập đường dẫn import
+# Thiết lập đường dẫn import (Độc lập trong cafe-application)
 APP_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = APP_DIR.parent
-if str(PROJECT_DIR) not in sys.path:
-    sys.path.insert(0, str(PROJECT_DIR))
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 from routes import init_routes
 from services.predictor_service import get_pipeline
-from routes.predictor import predict_leaf
+from services.auth_service import get_current_user_id
+from services.history_service import owns_image
 
 # Khởi tạo thư mục ảnh lưu trữ
 IMAGE_INPUT_DIR = APP_DIR / "image-cafe-input"
 IMAGE_INPUT_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = APP_DIR / "static"
 
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    await run_in_threadpool(get_pipeline)
+    yield
+
+
 app = FastAPI(
     title="Coffee Leaf Disease API & Web Application",
-    description="Hệ thống nhận diện bệnh lá cà phê sử dụng YOLOv8s + ResNet Ensemble v2 (Chuẩn cf-api)",
-    version="2.0.0"
+    description="Hệ thống nhận diện bệnh lá cà phê sử dụng YOLOv8s + Big/Small Ensemble v5",
+    version="3.0.0",
+    lifespan=lifespan,
 )
 
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        origin.strip()
+        for origin in os.environ.get("CAFE_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -69,14 +82,6 @@ init_routes(app)
 
 # Phục vụ thư mục tĩnh
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-app.mount("/image-cafe-input", StaticFiles(directory=str(IMAGE_INPUT_DIR)), name="images")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Tự động preload mô hình khi khởi động server."""
-    print("🌿 Khởi động server: Đang nạp mô hình...")
-    get_pipeline()
 
 
 @app.get("/ping")
@@ -92,11 +97,18 @@ async def serve_index():
     return HTMLResponse(content=index_path.read_text(encoding="utf-8"))
 
 
-# Alias cho đường dẫn cũ để đảm bảo tính tương thích ngược (Backward Compatibility)
-@app.post("/api/predict")
-async def legacy_predict(file: UploadFile = File(...), user_id: str = Form(None), croods: str = Form(None)):
-    """Chuyển tiếp yêu cầu từ endpoint cũ sang /predictor/predict."""
-    return await predict_leaf(file=file, user_id=user_id, croods=croods)
+@app.get("/image-cafe-input/{filename}")
+async def serve_image(
+    filename: str, current_user_id: str = Depends(get_current_user_id)
+):
+    image_path = IMAGE_INPUT_DIR / filename
+    if (
+        Path(filename).name != filename
+        or not image_path.is_file()
+        or not await owns_image(current_user_id, filename)
+    ):
+        raise HTTPException(status_code=404, detail="Không tìm thấy ảnh.")
+    return FileResponse(image_path)
 
 
 if __name__ == "__main__":

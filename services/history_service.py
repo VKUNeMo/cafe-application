@@ -7,7 +7,9 @@ Dịch vụ quản lý lịch sử chẩn đoán:
 - Cung cấp các API truy vấn lịch sử theo user_id, xem chi tiết theo ID, và bản đồ dịch tễ map.
 """
 
+import asyncio
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -17,35 +19,44 @@ SERVICES_DIR = Path(__file__).resolve().parent
 APP_DIR = SERVICES_DIR.parent
 HISTORIES_FILE = APP_DIR / "histories.json"
 DATA_JSON_PATH = APP_DIR / "data.json"
+_write_lock = asyncio.Lock()
+
+
+def _normalize_history(record: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = record.copy()
+    normalized["coords"] = normalized.pop("coords", None) or normalized.pop("croods", None)
+    return normalized
 
 
 def _load_histories() -> List[Dict[str, Any]]:
     """Đọc toàn bộ lịch sử từ file JSON."""
     if not HISTORIES_FILE.exists():
         return []
-    try:
-        with open(HISTORIES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    with open(HISTORIES_FILE, "r", encoding="utf-8") as f:
+        histories = json.load(f)
+    if not isinstance(histories, list):
+        raise ValueError("Dữ liệu lịch sử không hợp lệ.")
+    return histories
 
 
 def _save_histories(histories: List[Dict[str, Any]]) -> None:
     """Lưu danh sách lịch sử vào file JSON."""
-    with open(HISTORIES_FILE, "w", encoding="utf-8") as f:
-        json.dump(histories, f, ensure_ascii=False, indent=2)
-
-
-async def add_history(history_data: Dict[str, Any]) -> Optional[str]:
-    """
-    Thêm bản ghi chẩn đoán mới.
-    Trả về None nếu thành công, hoặc thông báo lỗi nếu thất bại.
-    """
+    temp_path = HISTORIES_FILE.with_name(f".histories-{uuid.uuid4().hex}.tmp")
     try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(histories, f, ensure_ascii=False, indent=2)
+        os.replace(temp_path, HISTORIES_FILE)
+    finally:
+        temp_path.unlink(missing_ok=True)
+
+
+async def add_history(history_data: Dict[str, Any]) -> str:
+    """Thêm bản ghi chẩn đoán và trả về ID."""
+    async with _write_lock:
         histories = _load_histories()
 
         record_id = str(uuid.uuid4())
-        croods = history_data.get("croods") or {"lat": 14.0583, "long": 108.2772}  # Mặc định Tây Nguyên
+        coords = history_data.get("coords")
 
         record = {
             "id": record_id,
@@ -59,30 +70,33 @@ async def add_history(history_data: Dict[str, Any]) -> Optional[str]:
             "top2_confidence": float(history_data.get("top2_confidence", 0.0)),
             "is_uncertain": bool(history_data.get("is_uncertain", False)),
             "differential_note": str(history_data.get("differential_note", "")),
-            "croods": croods,
+            "coords": coords,
             "created_at": datetime.now().isoformat()
         }
 
         histories.insert(0, record)  # Mới nhất lên đầu
         _save_histories(histories)
-        return None
-    except Exception as e:
-        print(f"[HistoryService] Lỗi khi thêm lịch sử: {e}")
-        return str(e)
+        return record_id
 
 
 async def get_histories_by_user_id(user_id: str) -> List[Dict[str, Any]]:
     """Lấy danh sách các lần chẩn đoán của một user_id."""
     histories = _load_histories()
-    if not user_id or user_id in ("all", "default_user"):
-        return histories
-    return [h for h in histories if str(h.get("user_id")) == str(user_id)]
+    return [_normalize_history(h) for h in histories if str(h.get("user_id")) == str(user_id)]
 
 
-async def get_history_by_id(history_id: str) -> Optional[Dict[str, Any]]:
+async def owns_image(user_id: str, filename: str) -> bool:
+    image_url = f"/image-cafe-input/{filename}"
+    return any(
+        record.get("image_url") == image_url
+        for record in await get_histories_by_user_id(user_id)
+    )
+
+
+async def get_history_by_id(history_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     """Lấy chi tiết một lần chẩn đoán kèm phác đồ điều trị đầy đủ từ data.json."""
     histories = _load_histories()
-    target = next((h for h in histories if str(h.get("id")) == str(history_id)), None)
+    target = next((h for h in histories if str(h.get("id")) == str(history_id) and str(h.get("user_id")) == user_id), None)
     if not target:
         return None
 
@@ -111,7 +125,7 @@ async def get_history_by_id(history_id: str) -> Optional[Dict[str, Any]]:
         "user_id": target.get("user_id"),
         "image_url": target["image_url"],
         "confidence": target["confidence"],
-        "croods": target.get("croods"),
+        "coords": _normalize_history(target)["coords"],
         "result": matching_obj or {"idx": 99, "name": str(res_val), "disease": target.get("disease_name", ""), "cause": "", "solution": []},
         "top2_result": top2_obj,
         "top2_name": top2_name,
@@ -122,20 +136,20 @@ async def get_history_by_id(history_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-async def get_histories_map() -> List[Dict[str, Any]]:
+async def get_histories_map(user_id: str) -> List[Dict[str, Any]]:
     """Trả về danh sách tọa độ và kết quả bệnh để trực quan hóa bản đồ dịch tễ."""
-    histories = _load_histories()
+    histories = await get_histories_by_user_id(user_id)
     map_points = []
     for h in histories:
-        croods = h.get("croods")
-        if croods and "lat" in croods and "long" in croods:
+        coords = h.get("coords")
+        if coords and "lat" in coords and "long" in coords:
             map_points.append({
                 "id": h["id"],
                 "image_url": h["image_url"],
                 "result": h["result"],
                 "disease_name": h.get("disease_name", ""),
                 "confidence": h["confidence"],
-                "croods": croods,
+                "coords": coords,
                 "created_at": h["created_at"]
             })
     return map_points

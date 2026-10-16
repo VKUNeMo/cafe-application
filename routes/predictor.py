@@ -1,153 +1,139 @@
-# -*- coding: utf-8 -*-
-"""
-ROUTER: PREDICTOR
-=================
-Triển khai endpoint POST /predictor/predict theo đúng chuẩn của coung21/cf-api:
-- Nhận file (multipart/form-data), user_id, croods ("lat,long").
-- Thực thi NewCoffeePipeline (Scale-Aware + Nematode Guard v2).
-- Tự động lưu lịch sử chẩn đoán.
-- Trả về cấu trúc JSON chuẩn:
-  {
-      "result": {
-          "idx": int,
-          "name": str,
-          "disease": str,
-          "cause": str,
-          "solution": [str, ...]
-      },
-      "confidence": float,
-      "image_url": str,
-      ...
-  }
-"""
-
 import io
+import json
+import logging
+import math
 import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
-from PIL import Image
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from PIL import Image, UnidentifiedImageError
+from starlette.concurrency import run_in_threadpool
 
-from services.predictor_service import predict_coffee_leaf
+from schemas import PredictionResponse
 from services.history_service import add_history
+from services.auth_service import get_current_user_id
 from services.image_validator import validate_image_quality
+from services.predictor_service import predict_coffee_leaf
 
 router = APIRouter(prefix="/predictor", tags=["Predictor"])
+IMAGE_INPUT_DIR = Path(__file__).resolve().parent.parent / "image-cafe-input"
+MAX_UPLOAD_BYTES = 12 * 1024 * 1024
+MAX_IMAGE_PIXELS = 20_000_000
+VALID_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+DEFAULT_COORDINATES = {"lat": 14.0583, "long": 108.2772}
+logger = logging.getLogger(__name__)
 
-APP_DIR = Path(__file__).resolve().parent.parent
-IMAGE_INPUT_DIR = APP_DIR / "image-cafe-input"
-IMAGE_INPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+def parse_coordinates(raw_coordinates: str | None) -> dict[str, float]:
+    if not raw_coordinates or raw_coordinates.strip().lower() in {"", "null", "undefined", "string", "none"}:
+        return DEFAULT_COORDINATES.copy()
+    try:
+        if raw_coordinates.lstrip().startswith("{"):
+            value = json.loads(raw_coordinates)
+            parts = [value["lat"], value["long"]]
+        else:
+            parts = raw_coordinates.split(",")
+            if len(parts) != 2:
+                raise ValueError
+        if any(isinstance(part, bool) for part in parts):
+            raise ValueError
+        latitude, longitude = (float(str(part).strip()) for part in parts)
+        if not (math.isfinite(latitude) and math.isfinite(longitude)):
+            raise ValueError
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            raise ValueError
+    except (ValueError, TypeError, KeyError) as error:
+        raise HTTPException(status_code=422, detail="coords phải là lat,long (ví dụ: 14.0583,108.2772) hoặc JSON {\"lat\":14.0583,\"long\":108.2772}; có thể bỏ trống để dùng mặc định.") from error
+    return {"lat": round(latitude, 6), "long": round(longitude, 6)}
 
 
-@router.post("/predict")
+async def read_image(file: UploadFile) -> Image.Image:
+    filename = file.filename or ""
+    if Path(filename).suffix.lower() not in VALID_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ ảnh JPG, PNG, WebP hoặc BMP.")
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if not content or len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Ảnh phải nhỏ hơn 12 MB.")
+    try:
+        with Image.open(io.BytesIO(content)) as source:
+            if source.width * source.height > MAX_IMAGE_PIXELS:
+                raise HTTPException(status_code=413, detail="Ảnh vượt quá 20 triệu pixel.")
+            source.load()
+            return source.convert("RGB")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
+        raise HTTPException(status_code=400, detail="Không đọc được dữ liệu ảnh.") from error
+
+
+@router.post("/predict", response_model=PredictionResponse)
 async def predict_leaf(
     file: UploadFile = File(...),
-    user_id: Optional[str] = Form(None),
-    croods: Optional[str] = Form(None),
-    coords: Optional[str] = Form(None)
+    user_id: str | None = Form(None, examples=[None], description="Tùy chọn: ID người dùng."),
+    coords: str | None = Form(
+        None,
+        examples=["14.0583,108.2772"],
+        description="Tùy chọn: lat,long hoặc JSON có lat/long; bỏ trống dùng tọa độ mặc định.",
+    ),
+    current_user_id: str = Depends(get_current_user_id),
 ):
-    """
-    Dự đoán bệnh lá cà phê với file ảnh đầu vào và tọa độ GPS tùy chọn.
-    Đáp ứng chuẩn interface của cf-api:
-    - Input: file (ảnh), user_id (mã người dùng), croods/coords (chuỗi "lat,long")
-    - Output: result {idx, name, disease, cause, solution}, confidence, image_url
-    """
-    # 1. Kiểm tra định dạng file
-    valid_exts = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
-    fname = (file.filename or "").lower()
-    is_valid_type = (file.content_type and file.content_type.startswith("image/")) or any(fname.endswith(ext) for ext in valid_exts)
-    if not is_valid_type:
-        raise HTTPException(status_code=400, detail="Tệp tải lên phải là hình ảnh (jpg, jpeg, png, webp)")
-
+    clean_user_id = (
+        user_id.strip()
+        if user_id and user_id.strip().lower() not in {"", "string", "null", "undefined"}
+        else None
+    )
+    if current_user_id != "default_user" and clean_user_id and clean_user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Không thể lưu chẩn đoán cho người dùng khác.")
     try:
-        contents = await file.read()
-        img_pil = Image.open(io.BytesIO(contents)).convert("RGB")
+        image = await read_image(file)
+    finally:
+        await file.close()
 
-        # 2. Kiểm tra chất lượng ảnh đầu vào (Tiền xử lý kiểm định)
-        val_res = validate_image_quality(img_pil)
-        if not val_res["is_valid"]:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "error_code": val_res["error_code"],
-                    "message": val_res["message"],
-                    "details": val_res["details"]
-                }
-            )
+    quality = await run_in_threadpool(validate_image_quality, image)
+    if not quality["is_valid"]:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error_code": quality["error_code"],
+                "message": quality["message"],
+                "details": quality["details"],
+            },
+        )
+    if coords:
+        coordinates = parse_coordinates(coords)
+    else:
+        coordinates = DEFAULT_COORDINATES.copy()
+    image_path: Path | None = None
+    try:
+        prediction = await predict_coffee_leaf(image)
+        IMAGE_INPUT_DIR.mkdir(parents=True, exist_ok=True)
+        filename = f"{uuid.uuid4().hex}.jpg"
+        image_path = IMAGE_INPUT_DIR / filename
+        await run_in_threadpool(image.save, image_path, "JPEG", quality=90)
+        image_url = f"/image-cafe-input/{filename}"
 
-        # 3. Lưu ảnh vào image-cafe-input/
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        unique_id = uuid.uuid4().hex[:6]
-        orig_name = file.filename or "leaf.jpg"
-        safe_name = "".join(c if c.isalnum() or c in ".-_" else "_" for c in orig_name)
-        saved_filename = f"{timestamp}_{unique_id}_{safe_name}"
-        saved_path = IMAGE_INPUT_DIR / saved_filename
-
-        with open(saved_path, "wb") as f:
-            f.write(contents)
-
-        image_url = f"/image-cafe-input/{saved_filename}"
-
-        # 4. Phân tích và chuẩn hóa tọa độ GPS nếu có
-        lat, long_val = 14.0583, 108.2772  # Mặc định Tây Nguyên
-        gps_raw = coords or croods
-        if gps_raw:
-            try:
-                parts = gps_raw.split(",")
-                if len(parts) >= 2:
-                    p_lat = float(parts[0].strip())
-                    p_long = float(parts[1].strip())
-                    if -90.0 <= p_lat <= 90.0 and -180.0 <= p_long <= 180.0:
-                        lat, long_val = round(p_lat, 6), round(p_long, 6)
-            except Exception:
-                pass
-
-        # 5. Thực thi suy luận qua Pipeline v2
-        pred_res = await predict_coffee_leaf(img_pil)
-
-        disease_info = pred_res["result"]
-        confidence = pred_res["confidence"]
-
-        # 5. Lưu vào lịch sử chẩn đoán
-        top2_res = pred_res.get("top2_result")
-        history_record = {
-            "user_id": user_id or "default_user",
+        top2_result = prediction["top2_result"]
+        history = {
+            "user_id": current_user_id,
             "image_url": image_url,
-            "result": disease_info.get("idx", 0),
-            "disease_name": disease_info.get("disease", ""),
-            "confidence": confidence,
-            "top2_name": top2_res.get("disease", "") if top2_res else "",
-            "top2_confidence": pred_res.get("top2_confidence", 0.0),
-            "is_uncertain": pred_res.get("is_uncertain", False),
-            "differential_note": pred_res.get("differential_note", ""),
-            "croods": {
-                "lat": lat,
-                "long": long_val
-            }
+            "result": prediction["result"]["idx"],
+            "disease_name": prediction["result"]["disease"],
+            "confidence": prediction["confidence"],
+            "top2_name": top2_result["name"] if top2_result else "",
+            "top2_confidence": prediction["top2_confidence"],
+            "is_uncertain": prediction["is_uncertain"],
+            "differential_note": prediction["differential_note"],
+            "coords": coordinates,
         }
-        await add_history(history_record)
-
-        # 6. Trả về Response chuẩn hóa 100% theo cf-api kèm mở rộng Top-2 và phân vân
-        response_payload = {
-            "result": disease_info,
-            "confidence": confidence,
-            "top2_result": pred_res.get("top2_result"),
-            "top2_confidence": pred_res.get("top2_confidence", 0.0),
-            "is_uncertain": pred_res.get("is_uncertain", False),
-            "differential_note": pred_res.get("differential_note", ""),
+        await add_history(history)
+        return {
+            **prediction,
             "image_url": image_url,
-            "annotated_image": pred_res["annotated_image"],
-            "original_image": pred_res["original_image"],
-            "details": pred_res["details"]
+            "coords": coordinates,
+            "history_user_id": current_user_id,
         }
-
-        return JSONResponse(content=response_payload)
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý hình ảnh: {str(e)}")
+    except Exception as error:
+        if image_path is not None:
+            image_path.unlink(missing_ok=True)
+        logger.exception("Không thể chẩn đoán ảnh")
+        raise HTTPException(status_code=500, detail="Không thể xử lý ảnh lúc này.") from error
