@@ -1,0 +1,1 @@
+"""Coffee Leaf application package."""
