@@ -2,6 +2,16 @@
 
 Ngày kiểm chứng: **16/10/2026**.
 
+Phần kiểm chứng ngày 16/10 bên dưới là ghi nhận lịch sử của đợt bàn giao. Bộ test và file constraints được nhắc đến không còn đi kèm; các lệnh cài đặt và kiểm tra hiện hành nằm trong README. CI hiện kiểm tra dependency, lint và cú pháp, không chạy pytest.
+
+## Kiểm tra sau tinh gọn — 19/10/2026
+
+- Windows/Python 3.13 CPU, dùng môi trường và ba checkpoint đã có; không cài lại môi trường mới.
+- OpenAPI trước/sau khớp hoàn toàn, bao gồm tọa độ mặc định Tây Nguyên.
+- Suy luận thật trên hai ảnh local: toàn bộ response suy luận, bao gồm ảnh base64, khớp trước/sau sau khi bỏ trường thời gian xử lý. Đây là kiểm tra tương thích, không phải đánh giá độ chính xác.
+- Kiểm tra API bằng công cụ tạm local và storage riêng: đăng ký/đăng nhập, phân quyền, tọa độ, ghi/đọc lịch sử, bản đồ, tải ảnh, ảnh hỏng, dữ liệu `croods` cũ và dọn ảnh khi ghi lịch sử thất bại đều đạt. Trong các ca API này, suy luận được thay bằng kết quả cố định để kiểm tra luồng nghiệp vụ độc lập.
+- Ruff, kiểm tra cú pháp Python và `pip check` trong `.venv-check` đều đạt. Không chạy GitHub Actions hoặc kiểm tra CUDA trong phiên này.
+
 ## Môi trường
 
 - Windows, Python 3.13.7 64 bit, CPU.

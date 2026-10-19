@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.repositories.histories import _load_histories, _save_histories
+from app.repositories.json_store import load_histories, save_histories
 from app.repositories.knowledge import get_disease_knowledge
 
 _write_lock = asyncio.Lock()
@@ -27,7 +27,7 @@ def _normalize_history(record: Dict[str, Any]) -> Dict[str, Any]:
 async def add_history(history_data: Dict[str, Any]) -> str:
     """Thêm bản ghi chẩn đoán và trả về ID."""
     async with _write_lock:
-        histories = _load_histories()
+        histories = load_histories()
 
         record_id = str(uuid.uuid4())
         coords = history_data.get("coords")
@@ -49,13 +49,13 @@ async def add_history(history_data: Dict[str, Any]) -> str:
         }
 
         histories.insert(0, record)  # Mới nhất lên đầu
-        _save_histories(histories)
+        save_histories(histories)
         return record_id
 
 
 async def get_histories_by_user_id(user_id: str) -> List[Dict[str, Any]]:
     """Lấy danh sách các lần chẩn đoán của một user_id."""
-    histories = _load_histories()
+    histories = load_histories()
     return [_normalize_history(h) for h in histories if str(h.get("user_id")) == str(user_id)]
 
 
@@ -66,7 +66,7 @@ async def owns_image(user_id: str, filename: str) -> bool:
 
 async def get_history_by_id(history_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     """Lấy chi tiết một lần chẩn đoán kèm phác đồ điều trị đầy đủ từ data.json."""
-    histories = _load_histories()
+    histories = load_histories()
     target = next(
         (h for h in histories if str(h.get("id")) == str(history_id) and str(h.get("user_id")) == user_id), None
     )

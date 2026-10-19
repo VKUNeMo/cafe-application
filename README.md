@@ -23,7 +23,7 @@ Repository chứa mã nguồn, giao diện và dữ liệu mô tả bệnh. **Ba
 
 Môi trường đã kiểm chứng và các giới hạn được ghi trong [validation.md](docs/validation.md). Các hướng dẫn dưới đây thực hiện từ thư mục gốc repository.
 
-`requirements.txt` khóa dependencies trực tiếp; `requirements/constraints.txt` ghi bộ dependencies đã giải quyết và kiểm chứng trên Windows/Python 3.13 CPU. Constraints cũng áp dụng khi cài công cụ phát triển. Dependencies chỉ có trên nền tảng khác vẫn được chọn theo điều kiện của gói tương ứng.
+`requirements.txt` khóa phiên bản dependencies trực tiếp để chạy ứng dụng. `requirements-dev.txt` thêm Ruff cho người phát triển; không cần cài file này khi chỉ chạy ứng dụng. Dependencies gián tiếp được pip giải quyết theo yêu cầu của các gói, không khóa riêng.
 
 ## Cài đặt và chạy
 
@@ -94,14 +94,13 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 Chép chuỗi vừa tạo vào `CAFE_AUTH_SECRET` trong `.env`, giữ ổn định giữa các lần chạy. `.env` tự động được nạp và được Git bỏ qua. Mẫu cấu hình chọn CPU.
 
-### 5. Kiểm tra và khởi động
+### 5. Khởi động
 
 ```text
-python -m scripts.check_environment --load-models
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-Đợi terminal báo `Application startup complete` sau khi nạp ba checkpoint, rồi mở:
+Startup tự kiểm tra checkpoint và dữ liệu bệnh học, sau đó nạp model một lần. Đợi terminal báo `Application startup complete`, rồi mở:
 
 | Địa chỉ                  | Mục đích                                  |
 | --------------------------- | -------------------------------------------- |
@@ -124,7 +123,7 @@ Biến môi trường tiến trình được ưu tiên hơn `.env`. Đường d�
 | `CAFE_DEVICE`       | `auto`                            | `auto`: CUDA nếu có, còn lại CPU; hoặc ép `cpu`, `cuda`     |
 | `CAFE_CORS_ORIGINS` | Rỗng                               | Origin của frontend ngoài server, phân cách bằng dấu phẩy        |
 
-Ví dụ CORS: `http://localhost:3000,https://frontend.example.com`. Giao diện đi kèm cùng origin nên không cần đặt. `cuda` trên máy không có CUDA sẽ báo lỗi khởi động. Hướng dẫn GPU: [vận hành](docs/operations.md).
+Ví dụ CORS: `http://localhost:3000,https://frontend.example.com`. Giao diện đi kèm cùng origin nên không cần đặt. `cuda` trên máy không có CUDA sẽ báo lỗi khởi động. Muốn dùng GPU NVIDIA, cài bộ PyTorch/torchvision có CUDA tương thích phần cứng và đặt `CAFE_DEVICE=cuda`; không dùng index CPU ở bước cài PyTorch. CUDA chưa được kiểm chứng trong bản bàn giao.
 
 ## Sử dụng API
 
@@ -187,9 +186,8 @@ app/
   inference/       # Classifier, detection, tiền xử lý, ensemble, visualization
   resources/       # diseases.json: dữ liệu bệnh học cố định
   static/          # Giao diện; api.js tập trung HTTP
-scripts/           # Kiểm tra môi trường, chuyển dữ liệu cũ
-tests/             # Tests không cần model riêng
-docs/              # Kiến trúc, vận hành và kiểm chứng
+scripts/           # Chuyển dữ liệu từ cấu trúc cũ (tùy chọn)
+docs/              # Kiến trúc và ghi nhận kiểm chứng
 models/            # Checkpoint gửi riêng; Git bỏ qua
 storage/           # Dữ liệu phát sinh; Git bỏ qua
 ```
@@ -197,20 +195,10 @@ storage/           # Dữ liệu phát sinh; Git bỏ qua
 ```text
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
-python -m pytest -m "not integration"
+python -m compileall -q app scripts main.py
 ```
 
-Tests thay suy luận bằng fixture, không cần checkpoint hoặc dữ liệu cá nhân. GitHub Actions kiểm tra lint, dependencies và tests trên Windows/Linux. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Xem [kiến trúc](docs/architecture.md) và [kết quả kiểm chứng](docs/validation.md).
-
-Để bật test nạp checkpoint và dự đoán thật trên PowerShell:
-
-```powershell
-$env:CAFE_RUN_INTEGRATION='1'
-python -m pytest -q -m integration
-Remove-Item Env:CAFE_RUN_INTEGRATION
-```
-
-Linux/macOS dùng `CAFE_RUN_INTEGRATION=1 python -m pytest -q -m integration`. Test này cần model nhận riêng, không được chạy trong CI.
+GitHub Actions kiểm tra lint, dependencies và cú pháp Python trên Windows/Linux. Repository hiện không kèm bộ test tự động. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Sau khi sửa nghiệp vụ, kiểm tra dự đoán, lưu/đọc lịch sử và tải ảnh qua API. Xem [kiến trúc](docs/architecture.md) và [ghi nhận kiểm chứng](docs/validation.md).
 
 ## Dữ liệu và sao lưu
 
@@ -224,14 +212,14 @@ python -m scripts.migrate_legacy_data
 
 Có thể truyền `--source <thu-muc-cu> --destination <thu-muc-dich-trong>`. Nếu đổi đích, đặt `CAFE_STORAGE_DIR` tương ứng. Công cụ sao chép users/history/ảnh, giữ nguyên nguồn và từ chối đích đã có dữ liệu. API vẫn đọc `croods` cũ dưới tên `coords`.
 
-`.env`, model, users/history, ảnh tải lên và môi trường ảo được Git bỏ qua. Sao lưu toàn bộ storage và secret theo [hướng dẫn vận hành](docs/operations.md).
+`.env`, model, users/history, ảnh tải lên và môi trường ảo được Git bỏ qua. Khi sao lưu, dừng server rồi sao chép toàn bộ `CAFE_STORAGE_DIR` (users, histories, uploads); giữ secret và checkpoint riêng. Khi khôi phục, đặt lại storage và secret cũ, khởi động rồi kiểm tra đăng nhập, lịch sử và ảnh.
 
 ## Khắc phục lỗi
 
 | Hiện tượng                                   | Cách xử lý                                                                                     |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `Activate.ps1` bị chặn                      | Dùng `.\.venv\Scripts\python.exe` thay cho `python`; không bắt buộc activate              |
-| Thiếu checkpoint                               | Kiểm tra tên file và `CAFE_MODEL_DIR`; chạy công cụ kiểm tra với `--load-models`      |
+| Thiếu checkpoint                               | Kiểm tra tên file và `CAFE_MODEL_DIR`; startup sẽ báo đường dẫn bị thiếu      |
 | Lỗi `state_dict`, kiến trúc hoặc số lớp | Nhận lại đúng bộ trọng số; đổi tên file không giải quyết model không tương thích |
 | Không có CUDA/hết VRAM                       | Đặt `CAFE_DEVICE=cpu` rồi restart; kiểm tra biến môi trường ghi đè `.env`           |
 | Lỗi PyTorch/torchvision                        | Tạo lại `.venv`, cài đúng bộ phiên bản và chạy `python -m pip check`                |

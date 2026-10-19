@@ -3,28 +3,14 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from PIL import Image
 from starlette.concurrency import run_in_threadpool
 
 from app.repositories.knowledge import get_disease_knowledge
 
-if TYPE_CHECKING:
-    from app.inference.pipeline import CoffeePipeline
-
 _inference_lock = asyncio.Lock()
-
-
-def get_pipeline() -> CoffeePipeline:
-    # Import the ML stack only when startup/inference actually needs it.
-    from app.inference import get_pipeline as get_cached_pipeline
-
-    pipeline = get_cached_pipeline()
-    missing = {name.casefold() for name in pipeline.class_names} - get_disease_knowledge().keys()
-    if missing:
-        raise ValueError(f"Thiếu dữ liệu bệnh học cho lớp: {sorted(missing)}")
-    return pipeline
 
 
 def get_disease_knowledge_by_name(class_name: str) -> dict[str, Any]:
@@ -38,6 +24,8 @@ def pil_to_base64(image: Image.Image) -> str:
 
 
 def _predict_sync(image: Image.Image) -> dict[str, Any]:
+    from app.inference import get_pipeline
+
     prediction = get_pipeline().predict(image, return_visual=True)
     show_top2 = bool(prediction["show_top2"])
     top2_class = prediction["top2_class"] if show_top2 else None

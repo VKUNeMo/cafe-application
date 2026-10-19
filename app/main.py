@@ -13,7 +13,6 @@ from app.api.routes import init_routes
 from app.api.routes.web import router as web_router
 from app.core.config import get_settings
 from app.repositories.knowledge import get_disease_knowledge
-from app.services.predictor_service import get_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,8 @@ async def lifespan(application: FastAPI):
     settings.validate_models()
     get_disease_knowledge()
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    from app.inference import get_pipeline
+
     await run_in_threadpool(get_pipeline)
     yield
 

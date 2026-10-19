@@ -13,7 +13,7 @@ from app.repositories.images import delete_image, save_image
 from .history_service import add_history
 from .image_validator import validate_image_quality
 from .predictor_service import predict_coffee_leaf
-from .uploads import DEFAULT_COORDINATES, parse_coordinates, read_image
+from .uploads import parse_coordinates, read_image
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +40,7 @@ async def diagnose(file: UploadFile, user_id: str | None, coords: str | None, cu
                 "details": quality["details"],
             },
         )
-    if coords:
-        coordinates = parse_coordinates(coords)
-    else:
-        coordinates = DEFAULT_COORDINATES.copy()
+    coordinates = parse_coordinates(coords)
     image_path: Path | None = None
     try:
         prediction = await predict_coffee_leaf(image)

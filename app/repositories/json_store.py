@@ -4,6 +4,9 @@ import json
 import os
 import uuid
 from pathlib import Path
+from typing import Any
+
+from app.core.config import get_settings
 
 
 def load_json(path: Path, expected_type: type):
@@ -25,3 +28,19 @@ def save_json(path: Path, value) -> None:
         os.replace(temp, path)
     finally:
         temp.unlink(missing_ok=True)
+
+
+def load_users() -> dict[str, Any]:
+    return load_json(get_settings().users_file, dict)
+
+
+def save_users(users: dict[str, Any]) -> None:
+    save_json(get_settings().users_file, users)
+
+
+def load_histories() -> list[dict[str, Any]]:
+    return load_json(get_settings().histories_file, list)
+
+
+def save_histories(histories: list[dict[str, Any]]) -> None:
+    save_json(get_settings().histories_file, histories)
