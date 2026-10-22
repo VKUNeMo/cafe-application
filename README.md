@@ -23,7 +23,7 @@ Repository chứa mã nguồn, giao diện và dữ liệu mô tả bệnh. **Ba
 
 Môi trường đã kiểm chứng và các giới hạn được ghi trong [validation.md](docs/validation.md). Các hướng dẫn dưới đây thực hiện từ thư mục gốc repository.
 
-`requirements.txt` khóa phiên bản dependencies trực tiếp để chạy ứng dụng. `requirements-dev.txt` thêm Ruff cho người phát triển; không cần cài file này khi chỉ chạy ứng dụng. Dependencies gián tiếp được pip giải quyết theo yêu cầu của các gói, không khóa riêng.
+`requirements.txt` khóa phiên bản dependencies trực tiếp để chạy ứng dụng. Dependencies gián tiếp được pip giải quyết theo yêu cầu của các gói, không khóa riêng.
 
 ## Cài đặt và chạy
 
@@ -202,17 +202,8 @@ GitHub Actions kiểm tra lint, dependencies và cú pháp Python trên Windows/
 
 ## Dữ liệu và sao lưu
 
-Ứng dụng tạo `storage/uploads/` khi khởi động, ghi users/history khi có dữ liệu. Clone mới không chứa tài khoản hoặc lịch sử. URL ảnh vẫn là `/image-cafe-input/{filename}`.
-
-Để dùng dữ liệu cũ, **dừng server**, chạy trước lần khởi động đầu hoặc chọn storage đích trống:
-
-```text
-python -m scripts.migrate_legacy_data
-```
-
-Có thể truyền `--source <thu-muc-cu> --destination <thu-muc-dich-trong>`. Nếu đổi đích, đặt `CAFE_STORAGE_DIR` tương ứng. Công cụ sao chép users/history/ảnh, giữ nguyên nguồn và từ chối đích đã có dữ liệu. API vẫn đọc `croods` cũ dưới tên `coords`.
-
-`.env`, model, users/history, ảnh tải lên và môi trường ảo được Git bỏ qua. Khi sao lưu, dừng server rồi sao chép toàn bộ `CAFE_STORAGE_DIR` (users, histories, uploads); giữ secret và checkpoint riêng. Khi khôi phục, đặt lại storage và secret cũ, khởi động rồi kiểm tra đăng nhập, lịch sử và ảnh.
+Ứng dụng tự động tạo `storage/uploads/` khi khởi động, ghi users/history khi có dữ liệu. Clone mới không chứa tài khoản hoặc lịch sử. URL ảnh là `/image-cafe-input/{filename}`.
+.env, model, users/history, ảnh tải lên và môi trường ảo được Git bỏ qua. Khi sao lưu, dừng server rồi sao chép toàn bộ `CAFE_STORAGE_DIR` (users, histories, uploads); giữ secret và checkpoint riêng. Khi khôi phục, đặt lại storage và secret cũ, khởi động rồi kiểm tra đăng nhập, lịch sử và ảnh.
 
 ## Khắc phục lỗi
 

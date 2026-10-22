@@ -9,7 +9,7 @@ flowchart LR
     Services --> Repositories[Repositories]
     Inference --> Models[Checkpoint nhận riêng]
     Repositories --> Storage[storage: JSON và uploads]
-    Repositories --> Knowledge[resources/diseases.json]
+    Repositories --> Knowledge[knowledge.py: in-memory metadata]
 ```
 
 ## Trách nhiệm

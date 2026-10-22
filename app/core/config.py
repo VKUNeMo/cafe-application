@@ -47,10 +47,6 @@ class Settings:
         return self.storage_dir / "uploads"
 
     @property
-    def disease_file(self) -> Path:
-        return PROJECT_DIR / "app" / "resources" / "diseases.json"
-
-    @property
     def static_dir(self) -> Path:
         return PROJECT_DIR / "app" / "static"
 
