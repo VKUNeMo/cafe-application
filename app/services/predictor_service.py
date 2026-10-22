@@ -14,7 +14,12 @@ _inference_lock = asyncio.Lock()
 
 
 def get_disease_knowledge_by_name(class_name: str) -> dict[str, Any]:
-    return get_disease_knowledge()[class_name.casefold()]
+    record = get_disease_knowledge()[class_name.casefold()]
+    return {
+        "idx": record["idx"],
+        "name": record["name"],
+        "disease": record["disease"],
+    }
 
 
 def pil_to_base64(image: Image.Image) -> str:

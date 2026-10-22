@@ -7,8 +7,6 @@ class DiseaseInfo(BaseModel):
     idx: int
     name: str
     disease: str
-    cause: str
-    solution: list[str]
 
 
 class PredictionResponse(BaseModel):

@@ -484,18 +484,31 @@ import { api } from './api.js';
         }
 
         // ---- 3. Interactive Treatment Tabs ----
-        if (tabTop1Name) {
-            tabTop1Name.textContent = resObj.disease || resObj.name || 'Bệnh chính';
+        const treatmentContainer = $('#treatment-container');
+        const diffActions = $('#diff-actions');
+        const hasTreatment = Boolean(resObj.cause || resObj.solution);
+
+        if (treatmentContainer) {
+            treatmentContainer.style.display = hasTreatment ? 'block' : 'none';
         }
-        if (data.top2_result && data.top2_result.name && data.top2_result.name !== 'None') {
-            if (tabBtnTop2) tabBtnTop2.style.display = 'inline-flex';
-            if (tabTop2Name) tabTop2Name.textContent = data.top2_result.disease || data.top2_result.name;
-        } else {
-            if (tabBtnTop2) tabBtnTop2.style.display = 'none';
+        if (diffActions) {
+            diffActions.style.display = hasTreatment ? 'flex' : 'none';
         }
 
-        // Mặc định chọn tab 1
-        switchTreatmentTab('top1');
+        if (hasTreatment) {
+            if (tabTop1Name) {
+                tabTop1Name.textContent = resObj.disease || resObj.name || 'Bệnh chính';
+            }
+            if (data.top2_result && data.top2_result.name && data.top2_result.name !== 'None') {
+                if (tabBtnTop2) tabBtnTop2.style.display = 'inline-flex';
+                if (tabTop2Name) tabTop2Name.textContent = data.top2_result.disease || data.top2_result.name;
+            } else {
+                if (tabBtnTop2) tabBtnTop2.style.display = 'none';
+            }
+
+            // Mặc định chọn tab 1
+            switchTreatmentTab('top1');
+        }
 
         // ---- 4. Images Comparison ----
         const originalSrc = data.original_image ? 'data:image/jpeg;base64,' + data.original_image : data.image_url;

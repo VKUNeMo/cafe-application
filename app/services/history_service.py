@@ -96,15 +96,24 @@ async def get_history_by_id(history_id: str, user_id: str) -> Optional[Dict[str,
             None,
         )
 
+    def _strip_disease_info(item: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not item:
+            return None
+        return {
+            "idx": item.get("idx", 99),
+            "name": item.get("name", ""),
+            "disease": item.get("disease", ""),
+        }
+
     return {
         "id": target["id"],
         "user_id": target.get("user_id"),
         "image_url": target["image_url"],
         "confidence": target["confidence"],
         "coords": _normalize_history(target)["coords"],
-        "result": matching_obj
-        or {"idx": 99, "name": str(res_val), "disease": target.get("disease_name", ""), "cause": "", "solution": []},
-        "top2_result": top2_obj,
+        "result": _strip_disease_info(matching_obj)
+        or {"idx": 99, "name": str(res_val), "disease": target.get("disease_name", "")},
+        "top2_result": _strip_disease_info(top2_obj),
         "top2_name": top2_name,
         "top2_confidence": target.get("top2_confidence", 0.0),
         "is_uncertain": target.get("is_uncertain", False),

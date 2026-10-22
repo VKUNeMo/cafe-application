@@ -9,7 +9,7 @@ Repository chứa mã nguồn, giao diện và dữ liệu mô tả bệnh. **Ba
 - [Yêu cầu](#yêu-cầu)
 - [Cài đặt và chạy](#cài-đặt-và-chạy)
 - [Cấu hình](#cấu-hình)
-- [Sử dụng API](#sử-dụng-api)
+- [Sử dụng API](#sử-dụng-api) (Xem chi tiết tại [API_DOCUMENTATION.md](API_DOCUMENTATION.md))
 - [Phát triển](#phát-triển)
 - [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu)
 - [Khắc phục lỗi](#khắc-phục-lỗi)
