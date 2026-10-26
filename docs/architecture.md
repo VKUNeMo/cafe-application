@@ -16,7 +16,7 @@ flowchart LR
 
 - `api/routes`: hợp đồng HTTP; `dependencies` xác thực Bearer hoặc trả `default_user` cho khách.
 - `core/config`: nạp `.env` một lần, ưu tiên biến môi trường, tính đường dẫn theo repository. `core/security`: PBKDF2 và token HMAC giữ từ bản cũ.
-- `services/diagnosis`: kiểm định ảnh, suy luận, lưu ảnh và lịch sử; dọn ảnh nếu ghi lịch sử lỗi.
+- `services/prediction_service`: kiểm định ảnh, suy luận, lưu ảnh và lịch sử; dọn ảnh nếu ghi lịch sử lỗi.
 - `repositories/json_store`: đọc/ghi users và histories, lưu JSON nguyên tử qua file tạm và `os.replace`; ảnh ở uploads, dữ liệu bệnh học chỉ đọc.
 - `inference`: nạp Big, phát hiện vùng bệnh bằng YOLO, tiền xử lý và vẽ kết quả. Không phụ thuộc HTTP hoặc users/history.
 - `static/api.js`: tập trung HTTP cùng origin; `app.js` quản lý DOM và tương tác.

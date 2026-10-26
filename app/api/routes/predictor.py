@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.api.dependencies import get_current_user_id
 from app.schemas.prediction import PredictionResponse
-from app.services.diagnosis import diagnose
+from app.services.prediction_service import diagnose
 from app.services.uploads import DEFAULT_COORDINATES
 
 router = APIRouter(prefix="/predictor", tags=["Predictor"])

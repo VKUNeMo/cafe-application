@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
 from pydantic import ValidationError
 from app.schemas.prediction import PredictionDetails, PredictionResponse
-from app.services import diagnosis, history_service, predictor_service
+from app.services import history_service, prediction_service
 
 
 def mapped_prediction(show_top2=True):
@@ -41,7 +41,7 @@ def mapped_prediction(show_top2=True):
     with patch.dict(
         sys.modules, {"app.inference": SimpleNamespace(get_pipeline=lambda: pipeline)}
     ):
-        return predictor_service._predict_sync(Image.new("RGB", (16, 16)))
+        return prediction_service._predict_sync(Image.new("RGB", (16, 16)))
 
 
 class Top2ApiTests(unittest.IsolatedAsyncioTestCase):
@@ -101,17 +101,17 @@ class Top2ApiTests(unittest.IsolatedAsyncioTestCase):
         image = Image.new("RGB", (16, 16))
         file = SimpleNamespace(close=AsyncMock())
         with (
-            patch.object(diagnosis, "read_image", AsyncMock(return_value=image)),
+            patch.object(prediction_service, "read_image", AsyncMock(return_value=image)),
             patch.object(
-                diagnosis, "validate_image_quality", return_value={"is_valid": True}
+                prediction_service, "validate_image_quality", return_value={"is_valid": True}
             ),
             patch.object(
-                diagnosis, "predict_coffee_leaf", AsyncMock(return_value=prediction)
+                prediction_service, "_predict_sync", return_value=prediction
             ),
-            patch.object(diagnosis, "save_image", return_value=Path("test.jpg")),
-            patch.object(diagnosis, "add_history", AsyncMock()) as save,
+            patch.object(prediction_service, "save_image", return_value=Path("test.jpg")),
+            patch.object(prediction_service, "add_history", AsyncMock()) as save,
         ):
-            response = await diagnosis.diagnose(file, None, None, "default_user")
+            response = await prediction_service.diagnose(file, None, None, "default_user")
         self.assertNotIn("top2_confidence", response)
         self.assertNotIn("top2_confidence", response["details"])
         self.assertEqual(response["top2_result"]["name"], "mealy")

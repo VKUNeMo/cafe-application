@@ -6,6 +6,6 @@
 
 Ngưỡng duy nhất nằm ở `TOP2_CONF_THRESHOLD` trong `app/inference/config.py`. Không dùng Small, bảng precision, khoảng cách hai điểm hoặc điểm tối thiểu của top 2.
 
-`app/inference/pipeline.py` xử lý suy luận và ảnh chú thích. `app/services/predictor_service.py` ánh xạ kết quả sang thông tin bệnh và response API. Response giữ `method: "big_only"` và `selected_branch: "big"` để các client hiện tại tiếp tục hoạt động.
+`app/inference/pipeline.py` xử lý suy luận và ảnh chú thích. `app/services/prediction_service.py` xử lý toàn bộ yêu cầu: kiểm tra ảnh, gọi pipeline, ánh xạ thông tin bệnh, lưu ảnh/lịch sử và trả response API. Response giữ `method: "big_only"` và `selected_branch: "big"` để các client hiện tại tiếp tục hoạt động.
 
 Chạy `python -m unittest discover -s tests -v` để kiểm tra xếp hạng Big, ngưỡng 75%, API và lịch sử mà không cần nạp checkpoint thật.

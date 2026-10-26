@@ -1,23 +1,25 @@
-"""Prediction workflow: validate, infer, store image and history."""
+"""Validate uploads, run inference, and save prediction results."""
 
+import asyncio
 import logging
 import uuid
 from pathlib import Path
+from typing import Any
 
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from PIL import Image
 from starlette.concurrency import run_in_threadpool
 
-from PIL import Image
-
 from app.repositories.images import delete_image, save_image
+from app.repositories.knowledge import get_disease_knowledge
 
 from .history_service import add_history
 from .image_validator import validate_image_quality
-from .predictor_service import predict_coffee_leaf
 from .uploads import parse_coordinates, read_image
 
 logger = logging.getLogger(__name__)
+_inference_lock = asyncio.Lock()
 
 
 async def diagnose(file: UploadFile, user_id: str | None, coords: str | None, current_user_id: str):
@@ -46,7 +48,8 @@ async def diagnose(file: UploadFile, user_id: str | None, coords: str | None, cu
     image_path: Path | None = None
     annotated_path: Path | None = None
     try:
-        prediction = await predict_coffee_leaf(image)
+        async with _inference_lock:
+            prediction = await run_in_threadpool(_predict_sync, image)
         stem = uuid.uuid4().hex
         filename = f"{stem}.jpg"
         annotated_filename = f"{stem}_annotated.jpg"
@@ -98,3 +101,66 @@ async def diagnose(file: UploadFile, user_id: str | None, coords: str | None, cu
             delete_image(annotated_path)
         logger.exception("Không thể chẩn đoán ảnh")
         raise HTTPException(status_code=500, detail="Không thể xử lý ảnh lúc này.") from error
+
+
+def _predict_sync(image: Image.Image) -> dict[str, Any]:
+    from app.inference import get_pipeline
+
+    prediction = get_pipeline().predict(image, return_visual=True)
+    show_top2 = bool(prediction["show_top2"])
+    top2_class = prediction["top2_class"] if show_top2 else None
+    top2_result = get_disease_knowledge_by_name(top2_class) if top2_class else None
+    top2_confidence = round(float(prediction["top2_confidence"]), 4) if show_top2 else 0.0
+
+    boxes = [
+        {
+            "id": index,
+            "xyxy": [round(float(value), 1) for value in box["xyxy"]],
+            "confidence": round(float(box["conf"]), 3),
+            "class_name": box["class_name"],
+        }
+        for index, box in enumerate(prediction["detected_boxes"], start=1)
+    ]
+    result = get_disease_knowledge_by_name(prediction["pred_class"])
+    top2_disease = top2_result["disease"] if top2_result else ""
+    if show_top2 and top2_disease:
+        pred_disease = result["disease"]
+        differential_note = (
+            f"Hệ thống nghiêng về {pred_disease}, nhưng nhận thấy đặc điểm "
+            f"rất gần với {top2_disease}. "
+            f"Khuyến nghị kiểm tra thêm mặt dưới lá hoặc biểu hiện cành trước khi dùng thuốc."
+        )
+    else:
+        differential_note = ""
+
+    return {
+        "result": result,
+        "confidence": round(float(prediction["confidence"]), 4),
+        "top2_result": top2_result,
+        "top2_confidence": top2_confidence,
+        "show_top2": show_top2,
+        "is_uncertain": show_top2,
+        "differential_note": differential_note,
+        "annotated_image": prediction["annotated_image"],
+        "original_image": image,
+        "details": {
+            "method": "big_only",
+            "selected_branch": "big",
+            "detected_boxes": boxes,
+            "big_branch": {
+                **prediction["big_branch"],
+                "confidence": round(float(prediction["confidence"]), 4),
+                "all_probs": {name: round(float(value), 4) for name, value in prediction["big_branch"]["all_probs"].items()},
+            },
+            "elapsed_seconds": prediction["elapsed_seconds"],
+        },
+    }
+
+
+def get_disease_knowledge_by_name(class_name: str) -> dict[str, Any]:
+    record = get_disease_knowledge()[class_name.casefold()]
+    return {
+        "idx": record["idx"],
+        "name": record["name"],
+        "disease": record["disease"],
+    }
