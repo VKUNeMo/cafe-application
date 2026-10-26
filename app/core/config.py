@@ -9,7 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
-MODEL_FILENAMES = ("best-yolov26.pt", "best-big-last.pth", "best-small-last.pth")
+MODEL_FILENAMES = ("best-yolov26.pt", "best-big-last.pth")
 
 
 def configured_path(name: str, default: str) -> Path:
@@ -21,9 +21,6 @@ def configured_path(name: str, default: str) -> Path:
 class Settings:
     project_dir: Path = PROJECT_DIR
     model_dir: Path = field(default_factory=lambda: configured_path("CAFE_MODEL_DIR", "models"))
-    precision_table_path: Path = field(
-        default_factory=lambda: configured_path("CAFE_PRECISION_TABLE", "app/inference/data/precision_by_class.csv")
-    )
     storage_dir: Path = field(default_factory=lambda: configured_path("CAFE_STORAGE_DIR", "storage"))
     auth_secret: str = field(default_factory=lambda: os.environ.get("CAFE_AUTH_SECRET") or secrets.token_urlsafe(32))
     cors_origins: tuple[str, ...] = field(

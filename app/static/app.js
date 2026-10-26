@@ -1,11 +1,11 @@
 import { api } from './api.js';
 
 /**
- * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Ensemble Precision)
+ * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Big)
  * ==============================================================================
  * Tương thích chuẩn RESTful coung21/cf-api:
  * - Camera API, Geolocation API, File Drag & Drop
- * - Gọi POST /predictor/predict (Pipeline Precision: YOLOv8s Slicing + ResNet Big/Small + Ensemble Precision)
+ * - Gọi POST /predictor/predict (YOLO + Big)
  * - Chẩn đoán phân biệt Top-2 (Differential Diagnosis) & Cảnh báo phân vân lâm sàng (Uncertainty Flag)
  * - Phác đồ điều trị 2 chế độ (Interactive Treatment Tabs: Top-1 vs Top-2)
  * - Chi tiết suy luận đa tầng (Selected branch 8-class scores, Active Rule Trace, Big/Small Breakdown)
@@ -405,7 +405,6 @@ import { api } from './api.js';
         const conf = data.confidence || 0.0;
         const details = data.details || {};
         const big = details.big_branch || {};
-        const small = details.small_branch || {};
 
         const diseaseKey = (resObj.name || '').toLowerCase();
         const icon = diseaseIcons[diseaseKey] || '🍃';
@@ -418,7 +417,7 @@ import { api } from './api.js';
         $('#result-confidence').textContent = (conf * 100).toFixed(1) + '%';
 
         // Method & Time badge
-        const methodRaw = details.method || 'Ensemble Precision';
+        const methodRaw = details.method || 'Big';
         const methodShort = methodRaw.split('(')[0].trim();
         $('#result-method').textContent = methodShort;
 
@@ -528,52 +527,8 @@ import { api } from './api.js';
             countBadge.textContent = `${numBoxes} vùng tổn thương phát hiện`;
         }
 
-        // ---- 5. Deep Diagnostic Trace ----
-        // Active Decision Rule
-        renderActiveRuleBanner(details.method);
+        renderProbBars('big-probs', big.all_probs || {}, resObj.name);
 
-        // Selected branch score chart (8 classes)
-        renderSelectedBranchChart(big.all_probs, small.all_probs, resObj.name, details.selected_branch);
-
-        // Big Branch
-        if (big.class || big.pred_class) {
-            const bClass = big.pred_class || big.class;
-            $('#big-result').textContent = `${bClass} (${(big.confidence * 100).toFixed(1)}%)`;
-            if (big.all_probs) renderProbBars('big-probs', big.all_probs, bClass);
-        }
-
-        // Small Branch
-        if (small.class || small.pred_class) {
-            const sClass = small.pred_class || small.class;
-            $('#small-result').textContent = `${sClass} (${(small.confidence * 100).toFixed(1)}%)`;
-            if (small.all_probs) renderProbBars('small-probs', small.all_probs, sClass);
-        }
-
-        // Small box predictions list
-        const boxesContainer = $('#small-boxes');
-        boxesContainer.innerHTML = '';
-        const boxPreds = small.box_predictions || [];
-        if (boxPreds.length > 0) {
-            const title = document.createElement('div');
-            title.style.cssText = 'font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:8px;';
-            title.textContent = `${boxPreds.length} lát cắt vi mô từng đốm bệnh (224×224):`;
-            boxesContainer.appendChild(title);
-
-            boxPreds.forEach((bp, idx) => {
-                const row = document.createElement('div');
-                row.className = 'box-pred';
-                const pCls = bp.pred_class || '';
-                const pConf = ((bp.confidence || 0) * 100).toFixed(1);
-                row.innerHTML = `
-                    <span class="box-pred__label">Lát cắt #${idx + 1}:</span>
-                    <span><b>${pCls}</b> — ${pConf}%</span>
-                `;
-                boxesContainer.appendChild(row);
-            });
-        }
-
-        // Reset accordion state
-        $$('.branch__body:not(.open)').forEach(el => el.classList.remove('open'));
         resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -641,32 +596,8 @@ import { api } from './api.js';
     }
 
     // =========================================================================
-    // ACTIVE RULE BANNER & COMBINED ENSEMBLE CHART
+    // CLASS PROBABILITIES
     // =========================================================================
-    function renderActiveRuleBanner(methodStr) {
-        const descEl = $('#active-rule-desc');
-        if (!descEl) return;
-
-        const explanations = {
-            agreement: 'Hai nhánh cùng nhãn. Giữ nhãn chung và lấy điểm confidence cao hơn.',
-            precision_big: 'Chọn Big: precision của Big tại nhãn Big dự đoán cao hơn precision của Small tại nhãn Small dự đoán.',
-            precision_small: 'Chọn Small: precision của Small tại nhãn Small dự đoán cao hơn precision của Big tại nhãn Big dự đoán.',
-            precision_tie_big: 'Hai precision bằng nhau, ưu tiên nhánh Big.'
-        };
-        descEl.textContent = explanations[methodStr] || methodStr || 'Ensemble Precision';
-    }
-
-    function renderSelectedBranchChart(bigProbs, smallProbs, topClass, selectedBranch) {
-        const container = $('#ensemble-probs');
-        if (!container) return;
-        const probs = selectedBranch === 'big' ? bigProbs : selectedBranch === 'small' ? smallProbs : null;
-        if (!probs) {
-            container.textContent = 'Bản ghi này chưa có thông tin nhánh được chọn.';
-            return;
-        }
-        renderProbBars('ensemble-probs', probs, topClass);
-    }
-
     function renderProbBars(containerId, probs, topClass) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -795,8 +726,7 @@ import { api } from './api.js';
                 details: {
                     method: 'Lịch sử lưu trữ (Chi tiết phác đồ)',
                     detected_boxes: [],
-                    big_branch: {},
-                    small_branch: {}
+                    big_branch: {}
                 }
             });
             $('#result-original').src = resolveImageUrl(data.image_url);
@@ -807,24 +737,6 @@ import { api } from './api.js';
             showNotification('Lỗi xem chi tiết: ' + err.message, 'error');
         }
     }
-
-    // =========================================================================
-    // BRANCH ACCORDION TOGGLE
-    // =========================================================================
-    $$('.branch__header:not(.is-static)').forEach(header => {
-        header.addEventListener('click', () => {
-            const targetId = header.getAttribute('data-toggle');
-            const body = document.getElementById(targetId);
-            const toggle = header.querySelector('.branch__toggle');
-
-            if (body) {
-                body.classList.toggle('open');
-                if (toggle) {
-                    toggle.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
-                }
-            }
-        });
-    });
 
     // =========================================================================
     // NOTIFICATION TOAST

@@ -20,7 +20,7 @@
 - Suy luận thật CPU trên một ảnh Healthy local: nạp model và CSV, hai nhánh/nhãn cuối khớp mẫu đánh giá, vẽ overlay thành công. Kiểm tra bộ chuyển response API với kết quả này: schema, nhánh được chọn và trace precision đúng; không ghi lịch sử hoặc ảnh lên storage.
 - **7 kiểm thử tự động** kiểm tra đồng thuận, chọn Big/Small theo precision, precision bằng nhau và CSV sai/thiếu. Chạy bằng `python -m unittest discover -s tests -v`, không cần checkpoint. CI đã thêm bước chạy các test này.
 - Ruff, cú pháp Python, cú pháp hai module JavaScript và kiểm tra hiển thị biểu đồ theo nhánh được chọn đều đạt. Chưa kiểm thử giao diện trong trình duyệt hoặc chạy workflow từ GitHub, Linux/CUDA hay benchmark tải.
-- README, hai bản API documentation, kiến trúc và tài liệu [Ensemble Precision](precision-ensemble.md) đã cập nhật. Các xác nhận tương thích với thuật toán cũ dưới đây là lịch sử, không áp dụng cho nhãn ensemble sau lần đổi thuật toán này.
+- README, hai bản API documentation, kiến trúc và tài liệu [Ensemble Precision](inference.md) đã cập nhật. Các xác nhận tương thích với thuật toán cũ dưới đây là lịch sử, không áp dụng cho nhãn ensemble sau lần đổi thuật toán này.
 
 Bảng được tính từ nhãn thật của chính tập đánh giá (in-sample). Accuracy 95,91% (328/342), Macro F1 95,47% là kết quả khảo sát trên tập đó, không phải kiểm chứng test độc lập hoặc độ chính xác cho mọi ảnh người dùng.
 

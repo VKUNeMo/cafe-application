@@ -4,10 +4,9 @@ PIPELINE PREPROCESSING & CROPPING
 =================================
 Các thuật toán tiền xử lý hình ảnh và cắt trích xuất vùng đặc trưng:
 - ApplyUnsharpMask: Tăng độ nét vi mô và giữ rõ đường biên đốm bệnh
-- find_best_square_crop_by_width: Cắt vùng vuông kích thước theo cạnh ngắn bao bọc cụm vết bệnh cho nhánh ResNet Big
-- crop_single_bbox_square: Cắt vùng vuông quanh từng BBox cho nhánh ResNet Small (kèm padding 25% và đệm viền đen)
+- find_best_square_crop_by_width: Cắt vùng vuông kích thước theo cạnh ngắn bao bọc cụm vết bệnh cho nhánh ConvNeXt Big
 - get_center_square_crop: Cắt vùng vuông trung tâm khi không có BBox
-- get_resnet_transforms: Chuỗi biến đổi ảnh ResNet (Resize Bilinear, Unsharp Mask, Normalize)
+- get_classifier_transforms: Chuỗi biến đổi ảnh ConvNeXt (Resize Bilinear, Unsharp Mask, Normalize)
 """
 
 from typing import List, Tuple
@@ -19,9 +18,7 @@ from torchvision import transforms
 from app.inference.config import (
     IMAGENET_MEAN,
     IMAGENET_STD,
-    RESNET_IMG_SIZE,
-    SMALL_MIN_SIZE,
-    SMALL_PADDING_RATIO,
+    CLASSIFIER_IMG_SIZE,
     UNSHARP_PERCENT,
     UNSHARP_RADIUS,
     UNSHARP_THRESHOLD,
@@ -44,8 +41,8 @@ class ApplyUnsharpMask:
         return img.filter(ImageFilter.UnsharpMask(radius=self.radius, percent=self.percent, threshold=self.threshold))
 
 
-def get_resnet_transforms(img_size: int = RESNET_IMG_SIZE) -> transforms.Compose:
-    """Transform cho ResNet: Resize Bilinear -> UnsharpMask -> ToTensor -> Normalize."""
+def get_classifier_transforms(img_size: int = CLASSIFIER_IMG_SIZE) -> transforms.Compose:
+    """Transform cho ConvNeXt: Resize Bilinear -> UnsharpMask -> ToTensor -> Normalize."""
     return transforms.Compose(
         [
             transforms.Resize((img_size, img_size), interpolation=transforms.InterpolationMode.BILINEAR),
@@ -68,7 +65,7 @@ def find_best_square_crop_by_width(
     img_w: int, img_h: int, bboxes: List[Tuple[float, float, float, float]]
 ) -> Tuple[int, int, int, int]:
     """
-    Thuật toán cắt hình vuông bao bọc tối đa cụm vết bệnh cho nhánh ResNet Big.
+    Thuật toán cắt hình vuông bao bọc tối đa cụm vết bệnh cho nhánh ConvNeXt Big.
     - Cạnh hình vuông = min(img_w, img_h)
     - Trượt dọc theo chiều dài hơn để tối đa hóa số lượng vết bệnh nằm trong vùng cắt
     - Ưu tiên vùng có tâm gần tâm cụm vết bệnh nhất nếu số lượng vết bệnh bằng nhau
@@ -148,78 +145,3 @@ def find_best_square_crop_by_width(
                 best_x1 = x1_cand
 
         return (best_x1, 0, best_x1 + side, side)
-
-
-def crop_single_bbox_square(
-    img: Image.Image, bbox: List[float], padding_ratio: float = SMALL_PADDING_RATIO, min_size: int = SMALL_MIN_SIZE
-) -> Image.Image:
-    """
-    Cắt vùng vuông 1:1 bao quanh một BBox cụ thể cho nhánh ResNet Small.
-    - Kích thước = max(bw, bh) * (1 + padding_ratio)
-    - Đảm bảo >= min_size (128px)
-    - Nếu tràn viền ảnh, đệm đen (zero-padding canvas) để giữ trọn vẹn tỷ lệ vết bệnh
-    """
-    img_w, img_h = img.size
-    bx, by, bw, bh = bbox
-    cx = bx + bw / 2.0
-    cy = by + bh / 2.0
-
-    side = max(bw, bh) * (1.0 + padding_ratio)
-    side = max(side, min_size)
-
-    x1 = int(round(cx - side / 2.0))
-    y1 = int(round(cy - side / 2.0))
-    x2 = int(round(x1 + side))
-    y2 = int(round(y1 + side))
-
-    pad_left = max(0, -x1)
-    pad_top = max(0, -y1)
-    pad_right = max(0, x2 - img_w)
-    pad_bottom = max(0, y2 - img_h)
-
-    rx1 = max(0, x1)
-    ry1 = max(0, y1)
-    rx2 = min(img_w, x2)
-    ry2 = min(img_h, y2)
-
-    crop = img.crop((rx1, ry1, rx2, ry2))
-
-    if pad_left > 0 or pad_top > 0 or pad_right > 0 or pad_bottom > 0:
-        new_w = crop.width + pad_left + pad_right
-        new_h = crop.height + pad_top + pad_bottom
-        canvas = Image.new("RGB", (new_w, new_h), (0, 0, 0))
-        canvas.paste(crop, (pad_left, pad_top))
-        crop = canvas
-    return crop
-
-
-# Quality Control Configuration & Functions (Chuẩn hóa cho app.py & services)
-CONFIG = {"min_width": 200, "min_height": 200, "brightness_min": 25.0, "brightness_max": 235.0}
-
-
-def is_valid_image(img_pil: Image.Image) -> Tuple[bool, str]:
-    """Kiểm tra ảnh hợp lệ về kích thước tối thiểu."""
-    w, h = img_pil.size
-    if w < CONFIG["min_width"] or h < CONFIG["min_height"]:
-        return (
-            False,
-            f"Kích thước ảnh quá nhỏ ({w}x{h}). Yêu cầu tối thiểu {CONFIG['min_width']}x{CONFIG['min_height']}.",
-        )
-    return True, "Hợp lệ"
-
-
-def run_quality_control(img_pil: Image.Image) -> dict:
-    """Kiểm tra kích thước và ghi nhận độ sáng; không kiểm tra độ mờ."""
-    valid, msg = is_valid_image(img_pil)
-    img_gray = np.array(img_pil.convert("L"))
-    brightness = float(np.mean(img_gray))
-
-    is_extreme_lighting = brightness < CONFIG["brightness_min"] or brightness > CONFIG["brightness_max"]
-
-    return {
-        "is_valid": valid,
-        "message": msg if not valid else "Đạt tiêu chuẩn",
-        "resolution": f"{img_pil.width}x{img_pil.height}",
-        "brightness": round(brightness, 2),
-        "is_extreme_lighting": is_extreme_lighting,
-    }

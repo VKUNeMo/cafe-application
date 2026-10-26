@@ -1,16 +1,16 @@
 # Coffee Leaf Application
 
-Ứng dụng nhận diện bệnh lá cà phê qua ảnh, cung cấp **REST API bằng FastAPI** và **giao diện web** trên cùng server. Pipeline kết hợp YOLO phát hiện vùng bệnh, hai nhánh Big/Small và **Ensemble Precision theo lớp**: cùng nhãn thì giữ nhãn chung và confidence cao hơn; khác nhãn thì chọn dự đoán có precision cao hơn, bằng nhau chọn Big.
+Pipeline dùng YOLO phát hiện vùng bệnh và chỉ nhánh Big để phân loại. Hiển thị top 2 khi confidence ≤ 75%; trên 75% chỉ hiển thị top 1.
 
-Bảng precision mặc định nằm trong `app/inference/data/precision_by_class.csv`, được đo trên toàn bộ 342 ảnh có nhãn của bộ đánh giá hiện tại. Ứng dụng tra bảng này khi nhận ảnh mới, không tính precision từ ảnh tải lên. Xem [logic, nguồn bảng, Top-2 và cách cập nhật](docs/precision-ensemble.md).
+Không nạp/chạy Small và không tra bảng precision. Top 2 là lớp có xác suất cao thứ hai của Big, không có điều kiện phụ về margin hoặc điểm tối thiểu.
 
-API trả kết quả cuối một lần ở cấp ngoài; `details` chỉ chứa diễn giải chọn nhánh, box YOLO và kết quả riêng của Big/Small. Precision nằm trong từng nhánh. Xem cấu trúc mới và hướng dẫn đổi các đường dẫn response cũ trong [API documentation](API_DOCUMENTATION.md).
+API trả kết quả cuối ở cấp ngoài; `details` chứa `method: "big_only"`, `selected_branch: "big"`, box YOLO, kết quả Big và thời gian xử lý. Xem [API documentation](API_DOCUMENTATION.md).
 
 Repository chứa mã nguồn, giao diện và dữ liệu mô tả bệnh. **Ba checkpoint được bàn giao riêng**; `models/` được Git bỏ qua hoàn toàn.
 
 ## Mục lục
 
-- [Ensemble Precision](docs/precision-ensemble.md)
+- [Luồng dự đoán Big](docs/inference.md)
 - [Yêu cầu](#yêu-cầu)
 - [Cài đặt và chạy](#cài-đặt-và-chạy)
 - [Cấu hình](#cấu-hình)
@@ -76,7 +76,6 @@ Tạo thư mục `models` ở gốc dự án và chép chính xác ba file:
 models/
 ├── best-yolov26.pt
 ├── best-big-last.pth
-└── best-small-last.pth
 ```
 
 Phải dùng bộ checkpoint tương thích do bên bàn giao cung cấp. Đổi tên một checkpoint khác không bảo đảm chạy đúng. Không cần Git LFS và không tải checkpoint từ repository này.
@@ -105,7 +104,7 @@ Chép chuỗi vừa tạo vào `CAFE_AUTH_SECRET` trong `.env`, giữ ổn đị
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Startup kiểm tra checkpoint, dữ liệu bệnh học và bảng precision, sau đó nạp pipeline một lần. CSV thiếu lớp, trùng lớp hoặc có giá trị không hợp lệ sẽ làm startup báo lỗi. Đợi terminal báo `Application startup complete`, rồi mở:
+Startup kiem tra checkpoint YOLO/Big va du lieu benh hoc. Doi `Application startup complete`, rồi mở:
 
 | Địa chỉ                  | Mục đích                                  |
 | --------------------------- | -------------------------------------------- |
@@ -124,7 +123,6 @@ Biến môi trường tiến trình được ưu tiên hơn `.env`. Đường d�
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------- |
 | `CAFE_AUTH_SECRET`     | Sinh ngẫu nhiên theo tiến trình           | Secret ký token; đặt cố định để token còn hợp lệ sau restart |
 | `CAFE_MODEL_DIR`       | `models`                                    | Thư mục chứa checkpoint                                              |
-| `CAFE_PRECISION_TABLE` | `app/inference/data/precision_by_class.csv` | CSV precision từng lớp, phải tương ứng checkpoint Big/Small       |
 | `CAFE_STORAGE_DIR`     | `storage`                                   | Users, histories và uploads                                            |
 | `CAFE_DEVICE`          | `auto`                                      | `auto`: CUDA nếu có, còn lại CPU; hoặc ép `cpu`, `cuda`     |
 | `CAFE_CORS_ORIGINS`    | Rỗng                                         | Origin của frontend ngoài server, phân cách bằng dấu phẩy        |
@@ -189,7 +187,7 @@ app/
   schemas/         # Request/response
   services/        # Nghiệp vụ và điều phối dự đoán
   repositories/    # JSON, ảnh và dữ liệu bệnh học
-  inference/       # Classifier, detection, tiền xử lý, ensemble, visualization
+  inference/       # YOLO, Big, tiền xử lý và vẽ kết quả
   resources/       # diseases.json: dữ liệu bệnh học cố định
   static/          # Giao diện; api.js tập trung HTTP
 scripts/           # Chuyển dữ liệu từ cấu trúc cũ (tùy chọn)
@@ -205,7 +203,7 @@ python -m compileall -q app main.py
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions kiểm tra dependencies, cú pháp Python và bộ test precision trên Windows/Linux. Bộ test trong `tests/` kiểm tra chọn nhánh và bảng CSV, không cần checkpoint hoặc huấn luyện lại mô hình. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Sau khi sửa nghiệp vụ, kiểm tra dự đoán, lưu/đọc lịch sử và tải ảnh qua API. Xem [kiến trúc](docs/architecture.md) và [ghi nhận kiểm chứng](docs/validation.md).
+GitHub Actions kiểm tra dependencies, cú pháp Python và bộ test trên Windows/Linux. Các test trong `tests/` kiểm tra Big, ngưỡng top 2, API và lịch sử bằng mô hình giả lập, không cần checkpoint. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Xem [luồng dự đoán](docs/inference.md) và [kiến trúc](docs/architecture.md).
 
 ## Dữ liệu và sao lưu
 

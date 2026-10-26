@@ -38,54 +38,36 @@ def _predict_sync(image: Image.Image) -> dict[str, Any]:
         }
         for index, box in enumerate(prediction["detected_boxes"], start=1)
     ]
-    small_box_predictions = [
-        {
-            "id": box["id"],
-            "pred_class": box["pred_class"],
-            "confidence": round(float(box["prob"]), 3),
-        }
-        for box in prediction["small_branch"]["box_preds"]
-    ]
-
-    def branch_details(branch: dict[str, Any], name: str) -> dict[str, Any]:
-        return {
-            "pred_class": branch["pred_class"],
-            "confidence": round(float(branch["confidence"]), 4),
-            "precision": float(prediction["precision_comparison"][f"{name}_precision"]),
-            "all_probs": {name: round(float(value), 4) for name, value in branch["all_probs"].items()},
-        }
-
+    result = get_disease_knowledge_by_name(prediction["pred_class"])
     top2_disease = top2_result["disease"] if top2_result else ""
     if show_top2 and top2_disease:
-        pred_disease = get_disease_knowledge_by_name(prediction["pred_class"])["disease"]
+        pred_disease = result["disease"]
         differential_note = (
             f"Hệ thống nghiêng về {pred_disease}, nhưng nhận thấy đặc điểm "
             f"rất gần với {top2_disease}. "
             f"Khuyến nghị kiểm tra thêm mặt dưới lá hoặc biểu hiện cành trước khi dùng thuốc."
         )
-    elif show_top2:
-        differential_note = prediction.get("differential_note", "")
     else:
         differential_note = ""
 
     return {
-        "result": get_disease_knowledge_by_name(prediction["pred_class"]),
+        "result": result,
         "confidence": round(float(prediction["confidence"]), 4),
         "top2_result": top2_result,
         "top2_confidence": top2_confidence,
         "show_top2": show_top2,
-        "is_uncertain": bool(prediction["is_uncertain"]),
+        "is_uncertain": show_top2,
         "differential_note": differential_note,
         "annotated_image": prediction["annotated_image"],
         "original_image": image,
         "details": {
-            "method": prediction["method"],
-            "selected_branch": prediction["selected_branch"],
+            "method": "big_only",
+            "selected_branch": "big",
             "detected_boxes": boxes,
-            "big_branch": branch_details(prediction["big_branch"], "big"),
-            "small_branch": {
-                **branch_details(prediction["small_branch"], "small"),
-                "box_predictions": small_box_predictions,
+            "big_branch": {
+                **prediction["big_branch"],
+                "confidence": round(float(prediction["confidence"]), 4),
+                "all_probs": {name: round(float(value), 4) for name, value in prediction["big_branch"]["all_probs"].items()},
             },
             "elapsed_seconds": prediction["elapsed_seconds"],
         },

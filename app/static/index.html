@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Hệ thống nhận diện bệnh lá cà phê đa thang đo AI - YOLOv8s Slicing + ResNet Big & Small + Ensemble Precision. Nhận diện 8 loại bệnh, chẩn đoán phân biệt Top-2 và gợi ý phác đồ điều trị chuẩn cf-api.">
-    <title>☘️ Chẩn Đoán Bệnh Lá Cà Phê | AI Ensemble Precision</title>
+    <meta name="description" content="Nhận diện bệnh lá cà phê bằng YOLO và Big. Hiển thị top 2 khi độ tin cậy không quá 75%.">
+    <title>☘️ Chẩn Đoán Bệnh Lá Cà Phê | AI Big</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +24,7 @@
             <div class="hero__content">
                 <div class="hero__badge">
                     <span class="hero__badge-icon">🧠</span>
-                    <span>Multi-Scale AI & Ensemble Precision</span>
+                    <span>Multi-Scale AI & Big</span>
                 </div>
                 <h1 class="hero__title">
                     <span class="hero__title-icon">☘️</span>
@@ -32,8 +32,8 @@
                     <span class="hero__title-accent">Bệnh Lá Cà Phê</span>
                 </h1>
                 <p class="hero__desc">
-                    Ứng dụng trí tuệ nhân tạo đa thang đo <strong>YOLOv8s Slicing + ResNet Big & Small</strong> 
-                    kết hợp bộ quy tắc suy luận <strong>Ensemble Precision</strong>.
+                    Ứng dụng trí tuệ nhân tạo <strong>YOLO + Big</strong>
+                    kết hợp bộ quy tắc suy luận <strong>Big</strong>.
                     Nhận diện 8 lớp lá cà phê và hiển thị nhãn thay thế khi kết quả còn phân vân
                     và tự động đề xuất phác đồ điều trị chi tiết.
                 </p>
@@ -47,7 +47,7 @@
                         <span class="hero__stat-label">Hai góc nhìn</span>
                     </div>
                     <div class="hero__stat">
-                        <span class="hero__stat-value">Ensemble Precision</span>
+                        <span class="hero__stat-value">Big</span>
                         <span class="hero__stat-label">Đồng thuận & Precision</span>
                     </div>
                     <div class="hero__stat">
@@ -106,8 +106,8 @@
                 <div class="pipeline-step">
                     <div class="pipeline-step__icon">🧬</div>
                     <div class="pipeline-step__num">03</div>
-                    <h3>Ensemble Precision Đa Tầng</h3>
-                    <p>Hai nhánh cùng nhãn thì giữ kết quả; khác nhãn thì ưu tiên dự đoán có precision theo lớp cao hơn</p>
+                    <h3>Phân Loại Big</h3>
+                    <p>Phân loại trên vùng lá đã cắt, hiển thị top 2 khi độ tin cậy không quá 75%</p>
                 </div>
                 <div class="pipeline-step__arrow">→</div>
                 <div class="pipeline-step">
@@ -223,8 +223,8 @@
                 <div class="loading__spinner">
                     <div class="loading__leaf">🍃</div>
                 </div>
-                <p class="loading__text">Đang phân tích ảnh qua Ensemble Precision...</p>
-                <p class="loading__sub">YOLOv8s quét lát cắt vi mô → ResNet Big (224×224) & Small (224×224) → Ensemble Precision (Precision theo lớp)</p>
+                <p class="loading__text">Đang phân tích ảnh qua Big...</p>
+                <p class="loading__sub">YOLO phát hiện vùng bệnh → Big phân loại → Trả kết quả</p>
             </div>
 
             <!-- Results -->
@@ -236,7 +236,7 @@
                             <span class="result-card__label">KẾT QUẢ CHẨN ĐOÁN AI (TOP 1)</span>
                         </div>
                         <div class="result-card__meta">
-                            <span class="result-card__badge" id="result-method">Ensemble Precision</span>
+                            <span class="result-card__badge" id="result-method">Big</span>
                             <span class="result-card__time-badge" id="result-elapsed">⚡ 0.18s</span>
                         </div>
                     </div>
@@ -357,15 +357,15 @@
                 <!-- Detailed Branch Inference Trace -->
                 <div class="detection-details" id="detection-details">
                     <h3 class="detection-details__title">
-                        <span>📋 Chi Tiết Suy Luận Đa Thang Đo (Diagnostic Trace)</span>
+                        <span>📋 Chi Tiết Suy Luận Đa Thang Đo (Big)</span>
                     </h3>
 
                     <!-- Active Decision Rule Banner -->
                     <div class="active-rule-card" id="active-rule-card">
                         <div class="active-rule-icon">⚙️</div>
                         <div class="active-rule-content">
-                            <div class="active-rule-title">Quy Tắc Quyết Định Ensemble Precision</div>
-                            <div class="active-rule-desc" id="active-rule-desc">Đang tải quy tắc suy luận...</div>
+                            <div class="active-rule-title">Quy Tắc Quyết Định Big</div>
+                            <div class="active-rule-desc">Big: top 2 khi confidence ≤ 75%; top 1 khi confidence > 75%.</div>
                         </div>
                     </div>
 
@@ -373,41 +373,13 @@
                     <div class="branch branch--ensemble" id="branch-ensemble">
                         <div class="branch__header is-static">
                             <span class="branch__icon">📊</span>
-                            <span class="branch__name">Điểm Phân Loại Của Nhánh Được Chọn (8 Lớp)</span>
+                            <span class="branch__name">Điểm Phân Loại Big (8 Lớp)</span>
                         </div>
                         <div class="branch__body open" id="branch-ensemble-body">
-                            <div class="branch__probs" id="ensemble-probs"></div>
+                            <div class="branch__probs" id="big-probs"></div>
                         </div>
                     </div>
 
-                    <!-- Branches Accordion -->
-                    <div class="branches">
-                        <div class="branch" id="branch-big">
-                            <div class="branch__header" data-toggle="branch-big-body">
-                                <span class="branch__icon">🔵</span>
-                                <span class="branch__name">Nhánh ResNet Big (224×224 Toàn Cảnh Vĩ Mô)</span>
-                                <span class="branch__result" id="big-result"></span>
-                                <span class="branch__toggle">▼</span>
-                            </div>
-                            <div class="branch__body" id="branch-big-body">
-                                <p class="branch__desc">Khung vuông góc nhìn vĩ mô toàn cảnh lá → Phân loại chính xác bệnh diện rộng & khỏe mạnh</p>
-                                <div class="branch__probs" id="big-probs"></div>
-                            </div>
-                        </div>
-                        <div class="branch" id="branch-small">
-                            <div class="branch__header" data-toggle="branch-small-body">
-                                <span class="branch__icon">🟡</span>
-                                <span class="branch__name">Nhánh ResNet Small (224×224 Từng Vết Bệnh Vi Mô)</span>
-                                <span class="branch__result" id="small-result"></span>
-                                <span class="branch__toggle">▼</span>
-                            </div>
-                            <div class="branch__body" id="branch-small-body">
-                                <p class="branch__desc">Soi từng đốm bệnh vi mô cục bộ bảo toàn tâm → Khử nhiễu nền & tối ưu Sâu vẽ bùa/Phoma</p>
-                                <div class="branch__probs" id="small-probs"></div>
-                                <div class="branch__boxes" id="small-boxes"></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Analyze Again -->
@@ -457,8 +429,8 @@
     <!-- ============================================================ -->
     <footer class="footer">
         <div class="container">
-            <p>☘️ Coffee Leaf Disease Detection — Multi-Scale Ensemble Pipeline (FastAPI)</p>
-            <p class="footer__sub">Tối ưu hóa độ chính xác thực tế với YOLOv8s Slicing + ResNet Big/Small + Top-2 Differential Diagnosis</p>
+            <p>☘️ Coffee Leaf Disease Detection — YOLO + Big Pipeline (FastAPI)</p>
+            <p class="footer__sub">YOLO + Big · Top 2 khi độ tin cậy không quá 75%</p>
         </div>
     </footer>
 

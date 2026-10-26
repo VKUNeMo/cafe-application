@@ -33,15 +33,8 @@ def mapped_prediction(show_top2=True):
             {"xyxy": [1.0, 2.0, 11.0, 12.0], "conf": 0.6, "class_name": "disease"}
         ],
         "big_branch": branch,
-        "small_branch": {
-            **branch,
-            "box_preds": [
-                {"id": 1, "crop_box": [1, 2, 10, 10], "pred_class": "Rust", "prob": 0.9}
-            ],
-        },
-        "method": "precision_big",
+        "method": "big_only",
         "selected_branch": "big",
-        "precision_comparison": {"big_precision": 0.95, "small_precision": 0.64},
         "elapsed_seconds": 1.0,
     }
     pipeline = SimpleNamespace(predict=lambda *args, **kwargs: prediction)
@@ -81,8 +74,8 @@ class Top2ApiTests(unittest.IsolatedAsyncioTestCase):
                 }
                 & response["details"].keys()
             )
-            self.assertEqual(response["details"]["big_branch"]["precision"], 0.95)
-            self.assertEqual(response["details"]["small_branch"]["precision"], 0.64)
+            self.assertNotIn("small_branch", response["details"])
+            self.assertNotIn("precision", response["details"]["big_branch"])
             self.assertEqual(
                 response["top2_result"]["name"] if show else response["top2_result"],
                 "mealy" if show else None,
@@ -94,10 +87,6 @@ class Top2ApiTests(unittest.IsolatedAsyncioTestCase):
     def test_box_coordinates_have_one_source_and_details_reject_duplicate_fields(self):
         details = mapped_prediction()["details"]
         self.assertEqual(details["detected_boxes"][0]["xyxy"], [1.0, 2.0, 11.0, 12.0])
-        box = details["small_branch"]["box_predictions"][0]
-        self.assertEqual(box["id"], details["detected_boxes"][0]["id"])
-        self.assertNotIn("crop_box", box)
-        self.assertEqual(box["confidence"], 0.9)
         PredictionDetails.model_validate(details)
         for key, value in {
             "confidence": 0.8,

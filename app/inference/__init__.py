@@ -1,17 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-PIPELINE MODULE
-===============
-Xuất các thành phần cốt lõi của Pipeline Ensemble.
-"""
+"""Cached application inference pipeline."""
 
-from app.inference.classifiers import CoffeeClassifier, ConvNeXtCoffeeClassifier
-from app.inference.config import (
-    BIG_MODEL_PATH,
-    DEFAULT_CLASS_NAMES,
-    SMALL_MODEL_PATH,
-    YOLO_MODEL_PATH,
-)
 from app.inference.pipeline import CoffeePipeline
 
 _cached_pipeline = None
@@ -38,15 +26,3 @@ def get_pipeline(device=None) -> CoffeePipeline:
     if missing:
         raise ValueError(f"Thiếu dữ liệu bệnh học cho lớp: {sorted(missing)}")
     return _cached_pipeline
-
-
-__all__ = [
-    "CoffeePipeline",
-    "CoffeeClassifier",
-    "ConvNeXtCoffeeClassifier",
-    "get_pipeline",
-    "DEFAULT_CLASS_NAMES",
-    "YOLO_MODEL_PATH",
-    "BIG_MODEL_PATH",
-    "SMALL_MODEL_PATH",
-]

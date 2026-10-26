@@ -1,6 +1,6 @@
 # 📚 TÀI LIỆU KỸ THUẬT API - COFFEE LEAF APPLICATION (HỆ THỐNG CHẨN ĐOÁN BỆNH LÁ CÀ PHÊ)
 
-Tài liệu này dành cho đội ngũ phát triển Frontend, Mobile App hoặc bên thứ ba cần tích hợp hệ thống API nhận diện và chẩn đoán bệnh lá cà phê qua mô hình AI (YOLO + Big/Small + Ensemble Precision theo lớp).
+Tài liệu này dành cho đội ngũ phát triển Frontend, Mobile App hoặc bên thứ ba cần tích hợp hệ thống API nhận diện và chẩn đoán bệnh lá cà phê qua mô hình AI (YOLO + Big).
 
 ---
 
@@ -34,33 +34,17 @@ Hệ thống chẩn đoán 8 lớp đối tượng trên lá cà phê:
 
 ---
 
-## Logic Ensemble Precision
+## Logic Big
 
-- Cùng nhãn: giữ nhãn chung, lấy confidence cao hơn; confidence bằng nhau chọn Big.
-- Khác nhãn: so precision của Big tại nhãn Big dự đoán với precision của Small tại nhãn Small dự đoán; chọn bên cao hơn, bằng nhau chọn Big.
-- Bảng mặc định `app/inference/data/precision_by_class.csv` được tính từ toàn bộ 342 ảnh có nhãn của bộ đánh giá (in-sample). Ảnh tải lên chỉ dùng để suy luận, không tính lại bảng và không chạy kiểm tra chéo.
-- Không dùng trọng số 55/45 hoặc quy tắc ưu tiên riêng theo bệnh. `all_probs` là điểm của từng nhánh, không phải vector ensemble đã trộn.
-- `details.method`: `agreement`, `precision_big`, `precision_small` hoặc `precision_tie_big`.
-- `details.selected_branch`: `big` hoặc `small`. Mỗi nhánh có `pred_class`, `confidence`, `precision` theo lớp dự đoán và `all_probs`; so `big_branch.precision` với `small_branch.precision` khi hai nhãn khác nhau.
-- Bất đồng: nhãn phụ lấy từ nhánh còn lại. Đồng thuận: nhãn phụ lấy từ vector của nhánh có confidence cao hơn. Cờ phân vân bật khi confidence < 0,65 hoặc |confidence − điểm phụ| < 0,20; không đổi nhãn đã chọn.
-- Với cấu hình mặc định, chỉ hiện Top-2 khi phân vân và điểm phụ nội bộ ≥ 0,10. Nếu ẩn, `top2_result` là `null`. API không trả `top2_confidence`, kể cả trong `details` và lịch sử; vẫn giữ nhãn Top-2, cờ phân vân và confidence nhãn chính.
+- Chỉ dùng YOLO và nhánh Big; không nạp/chạy Small và không tra bảng precision.
+- Top 1 và top 2 lấy theo xác suất giảm dần của Big.
+- Confidence ≤ 0.75: `show_top2` và `is_uncertain` là `true`, trả nhãn top 2.
+- Confidence > 0.75: `show_top2` và `is_uncertain` là `false`, `top2_result: null`.
+- Không có điều kiện margin hay ngưỡng confidence tối thiểu của top 2.
+- `details`: `method: "big_only"`, `selected_branch: "big"`, `detected_boxes`, `big_branch`, `elapsed_seconds`.
+- `big_branch`: `pred_class`, `confidence`, `all_probs`. Không còn `small_branch` hoặc `precision`.
+- API không trả điểm confidence top 2. Lịch sử cũ được giữ nguyên.
 
-Mã `idx` trong bảng bệnh là mã API, không phải vị trí lớp trong checkpoint. Tên lớp ở `details`, `all_probs` và bảng precision giữ chữ hoa/thường theo checkpoint; `result.name` dùng mã bệnh chuẩn hóa chữ thường.
-
-Chi tiết nguồn bảng, cách cập nhật và giới hạn đánh giá: [Ensemble Precision](precision-ensemble.md).
-
----
-
-
-### Cấu trúc response gọn
-
-Kết quả cuối chỉ xuất hiện ở cấp ngoài: `result`, `confidence`, `top2_result`, `show_top2`, `is_uncertain`, `differential_note`.
-
-`details` chỉ chứa `method`, `selected_branch`, `detected_boxes`, `big_branch`, `small_branch`, `elapsed_seconds`. Precision nằm ngay trong từng nhánh, không lặp tên nhãn trong một `precision_comparison` riêng. Số box bằng độ dài `detected_boxes`; dự đoán Small theo box tham chiếu tọa độ YOLO qua `id`, không lặp `crop_box`. `xyxy` là tọa độ box YOLO, không phải toàn bộ ảnh cắt Small có padding.
-
-Các dự đoán Big, Small và từng box được giữ vì đó là các phép suy luận riêng; cùng nhãn hoặc cùng số điểm không có nghĩa là trùng bản ghi. `all_probs` dùng cho biểu đồ và phân tích chi tiết, còn `confidence` trong nhánh là tóm tắt điểm của `pred_class`.
-
-Client dùng schema cũ cần bỏ các đường dẫn `details.pred_class`, `details.confidence`, `details.top2_class`, `details.is_uncertain`, `details.differential_note`, `details.num_boxes`, `details.precision_comparison` và `box_predictions[].crop_box`. Dùng các trường cấp ngoài, precision của từng nhánh, `detected_boxes.length` và liên kết `id` tương ứng. OpenAPI mô tả schema `PredictionDetails` cụ thể; không còn `details` là dictionary tùy ý.
 
 ## 3. CHI TIẾT CÁC ENDPOINTS
 
@@ -144,7 +128,7 @@ Trước khi đưa vào model AI, ảnh sẽ được kiểm tra chất lượng
   "image_url": "e4b9c1d2f3a44b9c8d1e2f3a4b5c6d7e.jpg",
   "annotated_image_url": "e4b9c1d2f3a44b9c8d1e2f3a4b5c6d7e_annotated.jpg",
   "details": {
-    "method": "agreement",
+    "method": "big_only",
     "selected_branch": "big",
     "detected_boxes": [],
     "big_branch": {
@@ -159,24 +143,7 @@ Trước khi đưa vào model AI, ảnh sẽ được kiểm tra chất lượng
         "Phoma": 0.02,
         "Rust": 0.945,
         "Healthy": 0.005
-      },
-      "precision": 0.9545454545454546
-    },
-    "small_branch": {
-      "pred_class": "Rust",
-      "confidence": 0.9,
-      "all_probs": {
-        "Anthracnose": 0.01,
-        "Corticium": 0.01,
-        "Mealy": 0.01,
-        "Miner": 0.01,
-        "Nematode": 0.02,
-        "Phoma": 0.03,
-        "Rust": 0.9,
-        "Healthy": 0.01
-      },
-      "box_predictions": [],
-      "precision": 0.972972972972973
+      }
     },
     "elapsed_seconds": 3.2
   }

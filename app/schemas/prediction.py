@@ -16,33 +16,19 @@ class DetectionBox(BaseModel):
     class_name: str
 
 
-class BoxPrediction(BaseModel):
-    id: int
-    pred_class: str
-    confidence: float
-
-
 class BranchPrediction(BaseModel):
     pred_class: str
     confidence: float
-    precision: float
     all_probs: dict[str, float]
-
-
-class SmallBranchPrediction(BranchPrediction):
-    box_predictions: list[BoxPrediction]
 
 
 class PredictionDetails(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal[
-        "agreement", "precision_big", "precision_small", "precision_tie_big"
-    ]
-    selected_branch: Literal["big", "small"]
+    method: Literal["big_only"]
+    selected_branch: Literal["big"]
     detected_boxes: list[DetectionBox]
     big_branch: BranchPrediction
-    small_branch: SmallBranchPrediction
     elapsed_seconds: float
 
 

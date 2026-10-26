@@ -36,7 +36,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
         title="Coffee Leaf Disease API & Web Application",
-        description="Nhận diện bệnh lá cà phê bằng detection và Big/Small ensemble.",
+        description="Nhận diện bệnh lá cà phê bằng YOLO và Big.",
         version="3.0.0",
         lifespan=lifespan,
     )
