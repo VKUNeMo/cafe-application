@@ -4,7 +4,6 @@ IMAGE QUALITY VALIDATOR SERVICE
 ===============================
 Module tiền xử lý kiểm định chất lượng ảnh đầu vào:
 - Độ phân giải tối thiểu (Resolution Check)
-- Độ sắc nét / Độ mờ (Blur Detection qua Laplacian Variance)
 - Độ sáng tối / Cháy sáng (Underexposure & Overexposure Check)
 - Nhận diện vùng mô lá cà phê (Foliage / Plant Coverage Ratio)
 Tự động từ chối ảnh không đạt chuẩn và trả về lý do cụ thể.
@@ -15,12 +14,6 @@ from typing import Any, Dict, Tuple
 import cv2
 import numpy as np
 from PIL import Image
-
-
-def calculate_blur_score(img_bgr: np.ndarray) -> float:
-    """Tính toán độ sắc nét bằng phương sai Laplacian (Laplacian Variance)."""
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    return float(cv2.Laplacian(gray, cv2.CV_64F).var())
 
 
 def calculate_brightness_metrics(img_bgr: np.ndarray) -> Tuple[float, float]:
@@ -72,7 +65,6 @@ def validate_image_quality(
     img_pil: Image.Image,
     min_resolution: int = 180,
     min_total_pixels: int = 40000,
-    min_laplacian_var: float = 15.0,
     min_brightness: float = 35.0,
     max_brightness: float = 230.0,
     max_overexposed_ratio: float = 0.40,
@@ -81,9 +73,8 @@ def validate_image_quality(
     """
     Kiểm định toàn diện chất lượng ảnh đầu vào:
     1. Kiểm tra kích thước và độ phân giải
-    2. Kiểm tra độ mờ / mất nét
-    3. Kiểm tra ảnh quá tối hoặc cháy sáng
-    4. Kiểm tra sự hiện diện của phiến lá thực vật
+    2. Kiểm tra ảnh quá tối hoặc cháy sáng
+    3. Kiểm tra sự hiện diện của phiến lá thực vật
     """
     w, h = img_pil.size
     total_pixels = w * h
@@ -100,17 +91,7 @@ def validate_image_quality(
             "details": {"width": w, "height": h, "total_pixels": total_pixels},
         }
 
-    # 2. Kiểm tra độ sắc nét / độ mờ
-    lap_var = calculate_blur_score(img_bgr)
-    if lap_var < min_laplacian_var:
-        return {
-            "is_valid": False,
-            "error_code": "IMAGE_BLURRY",
-            "message": f"Ảnh bị nhòe/mờ nghiêm trọng (độ nét {lap_var:.1f} < {min_laplacian_var}). Vui lòng giữ chắc tay máy và lấy nét lại vào bề mặt lá cà phê.",
-            "details": {"width": w, "height": h, "laplacian_var": round(lap_var, 2), "threshold": min_laplacian_var},
-        }
-
-    # 3. Kiểm tra độ sáng (Quá tối hoặc Quá chói sáng)
+    # 2. Kiểm tra độ sáng (Quá tối hoặc Quá chói sáng)
     mean_v, overexposed_ratio = calculate_brightness_metrics(img_bgr)
     if mean_v < min_brightness:
         return {
@@ -132,7 +113,7 @@ def validate_image_quality(
             },
         }
 
-    # 4. Kiểm tra sự hiện diện của phiến lá cà phê (màu sắc thực vật)
+    # 3. Kiểm tra sự hiện diện của phiến lá cà phê (màu sắc thực vật)
     leaf_ratio = calculate_plant_leaf_ratio(img_bgr)
     if leaf_ratio < min_leaf_ratio:
         return {
@@ -150,7 +131,6 @@ def validate_image_quality(
         "details": {
             "width": w,
             "height": h,
-            "laplacian_var": round(lap_var, 2),
             "mean_brightness": round(mean_v, 2),
             "leaf_ratio": round(leaf_ratio, 3),
         },

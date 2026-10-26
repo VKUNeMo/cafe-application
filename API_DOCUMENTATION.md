@@ -101,10 +101,9 @@ Gửi ảnh chụp phiến lá cà phê để phân tích, phát hiện vùng đ
 
 Trước khi đưa vào model AI, ảnh sẽ được kiểm tra chất lượng tự động:
 
-- Nếu ảnh không đạt (mờ, quá tối, cháy sáng, không phải lá cà phê), API trả về **HTTP 400 Bad Request** kèm mã lỗi và hướng dẫn chụp lại.
+- Nếu ảnh không đạt (kích thước quá nhỏ, quá tối, cháy sáng, không phải lá cà phê), API trả về **HTTP 400 Bad Request** kèm mã lỗi và hướng dẫn chụp lại. Hiện không kiểm tra độ sắc nét/độ mờ và không trả lỗi `IMAGE_BLURRY`.
 - Các mã lỗi kiểm định:
   - `RESOLUTION_TOO_LOW`: Ảnh quá nhỏ (< 180x180 px hoặc < 40.000 pixels).
-  - `IMAGE_BLURRY`: Ảnh bị nhòe/mờ nghiêm trọng (Laplacian variance thấp).
   - `IMAGE_TOO_DARK`: Ảnh chụp trong tối, thiếu sáng.
   - `IMAGE_OVEREXPOSED`: Ảnh chụp ngược sáng hoặc chói lóa ánh mặt trời.
   - `NOT_A_COFFEE_LEAF`: Ảnh nền đất/sàn nhà, tỷ lệ màu sắc mô lá thực vật < 15%.
@@ -114,13 +113,11 @@ Trước khi đưa vào model AI, ảnh sẽ được kiểm tra chất lượng
 ```json
 {
   "success": false,
-  "error_code": "IMAGE_BLURRY",
-  "message": "Ảnh bị nhòe/mờ nghiêm trọng (độ nét 8.5 < 15.0). Vui lòng giữ chắc tay máy và lấy nét lại vào bề mặt lá cà phê.",
+  "error_code": "IMAGE_TOO_DARK",
+  "message": "Ảnh quá tối (độ sáng 8.5/255 < 35.0). Vui lòng bật đèn flash hoặc chụp ở nơi có đủ ánh sáng ban ngày.",
   "details": {
-    "width": 1080,
-    "height": 1920,
-    "laplacian_var": 8.5,
-    "threshold": 15.0
+    "mean_brightness": 8.5,
+    "threshold": 35.0
   }
 }
 ```

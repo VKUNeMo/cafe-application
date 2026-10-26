@@ -175,7 +175,7 @@ curl "http://127.0.0.1:8000/histories/$USER_ID" -H "Authorization: Bearer $TOKEN
 curl -X POST http://127.0.0.1:8000/predictor/predict -H "Authorization: Bearer $TOKEN" -F 'file=@/path/to/leaf.jpg'
 ```
 
-Ảnh hỗ trợ JPG/JPEG, PNG, WebP, BMP, tối đa 12 MiB và 20 triệu pixel; có kiểm tra độ nét, độ sáng và vùng lá. `coords` nhận `lat,long` hoặc JSON `{"lat":14.0583,"long":108.2772}`. Khi bỏ qua, dùng mặc định `14.0583,108.2772` và vẫn tạo điểm bản đồ; đây không phải xác nhận vị trí chụp thực tế.
+Ảnh hỗ trợ JPG/JPEG, PNG, WebP, BMP, tối đa 12 MiB và 20 triệu pixel; có kiểm tra kích thước, độ sáng và vùng lá; hiện không kiểm tra độ sắc nét/độ mờ. `coords` nhận `lat,long` hoặc JSON `{"lat":14.0583,"long":108.2772}`. Khi bỏ qua, dùng mặc định `14.0583,108.2772` và vẫn tạo điểm bản đồ; đây không phải xác nhận vị trí chụp thực tế.
 
 Response có `history_user_id`, `coords`, `result`, `confidence`, `top2_result`, `show_top2`, `is_uncertain`, tên file ảnh gốc (`image_url`), tên file ảnh khoanh vùng bệnh (`annotated_image_url`) và `details`. Top-2 chỉ có nội dung khi chính sách pipeline cho phép. Schema đầy đủ ở `/docs`. Lỗi kiểm định ảnh trả `400` với `error_code`/`message`; vượt giới hạn trả `413`, tọa độ sai trả `422`, lỗi xử lý trả `500`.
 

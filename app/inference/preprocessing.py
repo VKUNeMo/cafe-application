@@ -12,7 +12,6 @@ Các thuật toán tiền xử lý hình ảnh và cắt trích xuất vùng đ�
 
 from typing import List, Tuple
 
-import cv2
 import numpy as np
 from PIL import Image, ImageFilter
 from torchvision import transforms
@@ -195,7 +194,7 @@ def crop_single_bbox_square(
 
 
 # Quality Control Configuration & Functions (Chuẩn hóa cho app.py & services)
-CONFIG = {"min_width": 200, "min_height": 200, "blur_threshold": 15.0, "brightness_min": 25.0, "brightness_max": 235.0}
+CONFIG = {"min_width": 200, "min_height": 200, "brightness_min": 25.0, "brightness_max": 235.0}
 
 
 def is_valid_image(img_pil: Image.Image) -> Tuple[bool, str]:
@@ -210,22 +209,17 @@ def is_valid_image(img_pil: Image.Image) -> Tuple[bool, str]:
 
 
 def run_quality_control(img_pil: Image.Image) -> dict:
-    """Chạy kiểm định chất lượng ảnh (độ nét, độ sáng, kích thước)."""
+    """Kiểm tra kích thước và ghi nhận độ sáng; không kiểm tra độ mờ."""
     valid, msg = is_valid_image(img_pil)
     img_gray = np.array(img_pil.convert("L"))
-    laplacian_var = float(cv2.Laplacian(img_gray, cv2.CV_64F).var())
     brightness = float(np.mean(img_gray))
 
-    is_blurry = laplacian_var < CONFIG["blur_threshold"]
     is_extreme_lighting = brightness < CONFIG["brightness_min"] or brightness > CONFIG["brightness_max"]
-    overall_valid = valid and not is_blurry
 
     return {
-        "is_valid": overall_valid,
-        "message": msg if not valid else ("Ảnh bị mờ" if is_blurry else "Đạt tiêu chuẩn"),
+        "is_valid": valid,
+        "message": msg if not valid else "Đạt tiêu chuẩn",
         "resolution": f"{img_pil.width}x{img_pil.height}",
-        "laplacian_var": round(laplacian_var, 2),
         "brightness": round(brightness, 2),
-        "is_blurry": is_blurry,
         "is_extreme_lighting": is_extreme_lighting,
     }
