@@ -10,6 +10,7 @@ Dịch vụ quản lý lịch sử chẩn đoán:
 import asyncio
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.repositories.json_store import load_histories, save_histories
@@ -20,6 +21,7 @@ _write_lock = asyncio.Lock()
 
 def _normalize_history(record: Dict[str, Any]) -> Dict[str, Any]:
     normalized = record.copy()
+    normalized.pop("top2_confidence", None)
     normalized["coords"] = normalized.pop("coords", None) or normalized.pop("croods", None)
     return normalized
 
@@ -36,6 +38,7 @@ async def add_history(history_data: Dict[str, Any]) -> str:
             "id": record_id,
             "user_id": str(history_data.get("user_id") or "default_user"),
             "image_url": str(history_data.get("image_url", "")),
+            "annotated_image_url": str(history_data.get("annotated_image_url", "")),
             "result": history_data.get("result"),  # idx hoặc tên bệnh
             "disease_name": history_data.get("disease_name", ""),
             "disease": history_data.get("disease_name", ""),
@@ -60,8 +63,13 @@ async def get_histories_by_user_id(user_id: str) -> List[Dict[str, Any]]:
 
 
 async def owns_image(user_id: str, filename: str) -> bool:
-    image_url = f"/image-cafe-input/{filename}"
-    return any(record.get("image_url") == image_url for record in await get_histories_by_user_id(user_id))
+    target_name = Path(filename).name
+    for record in await get_histories_by_user_id(user_id):
+        img_val = Path(str(record.get("image_url", ""))).name
+        ann_val = Path(str(record.get("annotated_image_url", ""))).name
+        if target_name in (img_val, ann_val):
+            return True
+    return False
 
 
 async def get_history_by_id(history_id: str, user_id: str) -> Optional[Dict[str, Any]]:
@@ -109,13 +117,13 @@ async def get_history_by_id(history_id: str, user_id: str) -> Optional[Dict[str,
         "id": target["id"],
         "user_id": target.get("user_id"),
         "image_url": target["image_url"],
+        "annotated_image_url": target.get("annotated_image_url", ""),
         "confidence": target["confidence"],
         "coords": _normalize_history(target)["coords"],
         "result": _strip_disease_info(matching_obj)
         or {"idx": 99, "name": str(res_val), "disease": target.get("disease_name", "")},
         "top2_result": _strip_disease_info(top2_obj),
         "top2_name": top2_name,
-        "top2_confidence": target.get("top2_confidence", 0.0),
         "is_uncertain": target.get("is_uncertain", False),
         "differential_note": target.get("differential_note", ""),
         "created_at": target["created_at"],

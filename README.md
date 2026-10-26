@@ -1,11 +1,16 @@
 # Coffee Leaf Application
 
-Ứng dụng nhận diện bệnh lá cà phê qua ảnh, cung cấp **REST API bằng FastAPI** và **giao diện web** trên cùng server. Pipeline kết hợp YOLO phát hiện vùng bệnh, hai nhánh phân loại Big/Small và ensemble với chính sách Top-2.
+Ứng dụng nhận diện bệnh lá cà phê qua ảnh, cung cấp **REST API bằng FastAPI** và **giao diện web** trên cùng server. Pipeline kết hợp YOLO phát hiện vùng bệnh, hai nhánh Big/Small và **Ensemble Precision theo lớp**: cùng nhãn thì giữ nhãn chung và confidence cao hơn; khác nhãn thì chọn dự đoán có precision cao hơn, bằng nhau chọn Big.
+
+Bảng precision mặc định nằm trong `app/inference/data/precision_by_class.csv`, được đo trên toàn bộ 342 ảnh có nhãn của bộ đánh giá hiện tại. Ứng dụng tra bảng này khi nhận ảnh mới, không tính precision từ ảnh tải lên. Xem [logic, nguồn bảng, Top-2 và cách cập nhật](docs/precision-ensemble.md).
+
+API trả kết quả cuối một lần ở cấp ngoài; `details` chỉ chứa diễn giải chọn nhánh, box YOLO và kết quả riêng của Big/Small. Precision nằm trong từng nhánh. Xem cấu trúc mới và hướng dẫn đổi các đường dẫn response cũ trong [API documentation](API_DOCUMENTATION.md).
 
 Repository chứa mã nguồn, giao diện và dữ liệu mô tả bệnh. **Ba checkpoint được bàn giao riêng**; `models/` được Git bỏ qua hoàn toàn.
 
 ## Mục lục
 
+- [Ensemble Precision](docs/precision-ensemble.md)
 - [Yêu cầu](#yêu-cầu)
 - [Cài đặt và chạy](#cài-đặt-và-chạy)
 - [Cấu hình](#cấu-hình)
@@ -97,10 +102,10 @@ Chép chuỗi vừa tạo vào `CAFE_AUTH_SECRET` trong `.env`, giữ ổn đị
 ### 5. Khởi động
 
 ```text
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Startup tự kiểm tra checkpoint và dữ liệu bệnh học, sau đó nạp model một lần. Đợi terminal báo `Application startup complete`, rồi mở:
+Startup kiểm tra checkpoint, dữ liệu bệnh học và bảng precision, sau đó nạp pipeline một lần. CSV thiếu lớp, trùng lớp hoặc có giá trị không hợp lệ sẽ làm startup báo lỗi. Đợi terminal báo `Application startup complete`, rồi mở:
 
 | Địa chỉ                  | Mục đích                                  |
 | --------------------------- | -------------------------------------------- |
@@ -115,13 +120,14 @@ Dừng bằng `Ctrl+C`. Lần sau chỉ cần kích hoạt môi trường ảo v
 
 Biến môi trường tiến trình được ưu tiên hơn `.env`. Đường dẫn tương đối tính theo thư mục gốc repository, không theo vị trí terminal.
 
-| Biến                 | Mặc định khi chưa đặt         | Ý nghĩa                                                               |
-| --------------------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| `CAFE_AUTH_SECRET`  | Sinh ngẫu nhiên theo tiến trình | Secret ký token; đặt cố định để token còn hợp lệ sau restart |
-| `CAFE_MODEL_DIR`    | `models`                          | Thư mục chứa checkpoint                                              |
-| `CAFE_STORAGE_DIR`  | `storage`                         | Users, histories và uploads                                            |
-| `CAFE_DEVICE`       | `auto`                            | `auto`: CUDA nếu có, còn lại CPU; hoặc ép `cpu`, `cuda`     |
-| `CAFE_CORS_ORIGINS` | Rỗng                               | Origin của frontend ngoài server, phân cách bằng dấu phẩy        |
+| Biến                    | Mặc định khi chưa đặt                   | Ý nghĩa                                                               |
+| ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------- |
+| `CAFE_AUTH_SECRET`     | Sinh ngẫu nhiên theo tiến trình           | Secret ký token; đặt cố định để token còn hợp lệ sau restart |
+| `CAFE_MODEL_DIR`       | `models`                                    | Thư mục chứa checkpoint                                              |
+| `CAFE_PRECISION_TABLE` | `app/inference/data/precision_by_class.csv` | CSV precision từng lớp, phải tương ứng checkpoint Big/Small       |
+| `CAFE_STORAGE_DIR`     | `storage`                                   | Users, histories và uploads                                            |
+| `CAFE_DEVICE`          | `auto`                                      | `auto`: CUDA nếu có, còn lại CPU; hoặc ép `cpu`, `cuda`     |
+| `CAFE_CORS_ORIGINS`    | Rỗng                                         | Origin của frontend ngoài server, phân cách bằng dấu phẩy        |
 
 Ví dụ CORS: `http://localhost:3000,https://frontend.example.com`. Giao diện đi kèm cùng origin nên không cần đặt. `cuda` trên máy không có CUDA sẽ báo lỗi khởi động. Muốn dùng GPU NVIDIA, cài bộ PyTorch/torchvision có CUDA tương thích phần cứng và đặt `CAFE_DEVICE=cuda`; không dùng index CPU ở bước cài PyTorch. CUDA chưa được kiểm chứng trong bản bàn giao.
 
@@ -171,7 +177,7 @@ curl -X POST http://127.0.0.1:8000/predictor/predict -H "Authorization: Bearer $
 
 Ảnh hỗ trợ JPG/JPEG, PNG, WebP, BMP, tối đa 12 MiB và 20 triệu pixel; có kiểm tra độ nét, độ sáng và vùng lá. `coords` nhận `lat,long` hoặc JSON `{"lat":14.0583,"long":108.2772}`. Khi bỏ qua, dùng mặc định `14.0583,108.2772` và vẫn tạo điểm bản đồ; đây không phải xác nhận vị trí chụp thực tế.
 
-Response có `history_user_id`, `coords`, `result`, `confidence`, `top2_result`, `show_top2`, `is_uncertain`, `image_url`, ảnh base64 và `details`. Top-2 chỉ có nội dung khi chính sách pipeline cho phép. Schema đầy đủ ở `/docs`. Lỗi kiểm định ảnh trả `400` với `error_code`/`message`; vượt giới hạn trả `413`, tọa độ sai trả `422`, lỗi xử lý trả `500`.
+Response có `history_user_id`, `coords`, `result`, `confidence`, `top2_result`, `show_top2`, `is_uncertain`, tên file ảnh gốc (`image_url`), tên file ảnh khoanh vùng bệnh (`annotated_image_url`) và `details`. Top-2 chỉ có nội dung khi chính sách pipeline cho phép. Schema đầy đủ ở `/docs`. Lỗi kiểm định ảnh trả `400` với `error_code`/`message`; vượt giới hạn trả `413`, tọa độ sai trả `422`, lỗi xử lý trả `500`.
 
 ## Phát triển
 
@@ -189,20 +195,21 @@ app/
 scripts/           # Chuyển dữ liệu từ cấu trúc cũ (tùy chọn)
 docs/              # Kiến trúc và ghi nhận kiểm chứng
 models/            # Checkpoint gửi riêng; Git bỏ qua
-storage/           # Dữ liệu phát sinh; Git bỏ qua
+storage/           # Dữ liệu phát sinh (storage/uploads, users.json, histories.json); Git bỏ qua
 ```
 
 ```text
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
-python -m compileall -q app scripts main.py
+python -m compileall -q app main.py
+python -m unittest discover -s tests -v
 ```
 
-GitHub Actions kiểm tra lint, dependencies và cú pháp Python trên Windows/Linux. Repository hiện không kèm bộ test tự động. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Sau khi sửa nghiệp vụ, kiểm tra dự đoán, lưu/đọc lịch sử và tải ảnh qua API. Xem [kiến trúc](docs/architecture.md) và [ghi nhận kiểm chứng](docs/validation.md).
+GitHub Actions kiểm tra dependencies, cú pháp Python và bộ test precision trên Windows/Linux. Bộ test trong `tests/` kiểm tra chọn nhánh và bảng CSV, không cần checkpoint hoặc huấn luyện lại mô hình. Suy luận thật cần kiểm chứng riêng bằng model nhận từ bên bàn giao. Sau khi sửa nghiệp vụ, kiểm tra dự đoán, lưu/đọc lịch sử và tải ảnh qua API. Xem [kiến trúc](docs/architecture.md) và [ghi nhận kiểm chứng](docs/validation.md).
 
 ## Dữ liệu và sao lưu
 
-Ứng dụng tự động tạo `storage/uploads/` khi khởi động, ghi users/history khi có dữ liệu. Clone mới không chứa tài khoản hoặc lịch sử. URL ảnh là `/image-cafe-input/{filename}`.
+Ứng dụng lưu ảnh vật lý vào thư mục **`storage/uploads/`** (được cấu hình qua `CAFE_STORAGE_DIR/uploads`). Khi client yêu cầu xem ảnh, hệ thống phục vụ qua **API route ảo** `/image-cafe-input/{filename}` sau khi đã kiểm tra quyền sở hữu ảnh của user. Clone mới không chứa tài khoản hoặc lịch sử.
 .env, model, users/history, ảnh tải lên và môi trường ảo được Git bỏ qua. Khi sao lưu, dừng server rồi sao chép toàn bộ `CAFE_STORAGE_DIR` (users, histories, uploads); giữ secret và checkpoint riêng. Khi khôi phục, đặt lại storage và secret cũ, khởi động rồi kiểm tra đăng nhập, lịch sử và ảnh.
 
 ## Khắc phục lỗi
@@ -210,7 +217,7 @@ GitHub Actions kiểm tra lint, dependencies và cú pháp Python trên Windows/
 | Hiện tượng                                   | Cách xử lý                                                                                     |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `Activate.ps1` bị chặn                      | Dùng `.\.venv\Scripts\python.exe` thay cho `python`; không bắt buộc activate              |
-| Thiếu checkpoint                               | Kiểm tra tên file và `CAFE_MODEL_DIR`; startup sẽ báo đường dẫn bị thiếu      |
+| Thiếu checkpoint                               | Kiểm tra tên file và `CAFE_MODEL_DIR`; startup sẽ báo đường dẫn bị thiếu             |
 | Lỗi `state_dict`, kiến trúc hoặc số lớp | Nhận lại đúng bộ trọng số; đổi tên file không giải quyết model không tương thích |
 | Không có CUDA/hết VRAM                       | Đặt `CAFE_DEVICE=cpu` rồi restart; kiểm tra biến môi trường ghi đè `.env`           |
 | Lỗi PyTorch/torchvision                        | Tạo lại `.venv`, cài đúng bộ phiên bản và chạy `python -m pip check`                |

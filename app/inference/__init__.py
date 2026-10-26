@@ -11,8 +11,6 @@ from app.inference.config import (
     DEFAULT_CLASS_NAMES,
     SMALL_MODEL_PATH,
     YOLO_MODEL_PATH,
-    PipelineConfig,
-    get_config,
 )
 from app.inference.pipeline import CoffeePipeline
 
@@ -47,8 +45,6 @@ __all__ = [
     "CoffeeClassifier",
     "ConvNeXtCoffeeClassifier",
     "get_pipeline",
-    "PipelineConfig",
-    "get_config",
     "DEFAULT_CLASS_NAMES",
     "YOLO_MODEL_PATH",
     "BIG_MODEL_PATH",

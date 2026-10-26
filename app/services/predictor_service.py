@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import base64
-import io
 from typing import Any
 
 from PIL import Image
@@ -20,12 +18,6 @@ def get_disease_knowledge_by_name(class_name: str) -> dict[str, Any]:
         "name": record["name"],
         "disease": record["disease"],
     }
-
-
-def pil_to_base64(image: Image.Image) -> str:
-    buffer = io.BytesIO()
-    image.save(buffer, format="JPEG", quality=90)
-    return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
 def _predict_sync(image: Image.Image) -> dict[str, Any]:
@@ -49,19 +41,32 @@ def _predict_sync(image: Image.Image) -> dict[str, Any]:
     small_box_predictions = [
         {
             "id": box["id"],
-            "crop_box": [int(value) for value in box["crop_box"]],
             "pred_class": box["pred_class"],
             "confidence": round(float(box["prob"]), 3),
         }
         for box in prediction["small_branch"]["box_preds"]
     ]
 
-    def branch_details(branch: dict[str, Any]) -> dict[str, Any]:
+    def branch_details(branch: dict[str, Any], name: str) -> dict[str, Any]:
         return {
             "pred_class": branch["pred_class"],
             "confidence": round(float(branch["confidence"]), 4),
+            "precision": float(prediction["precision_comparison"][f"{name}_precision"]),
             "all_probs": {name: round(float(value), 4) for name, value in branch["all_probs"].items()},
         }
+
+    top2_disease = top2_result["disease"] if top2_result else ""
+    if show_top2 and top2_disease:
+        pred_disease = get_disease_knowledge_by_name(prediction["pred_class"])["disease"]
+        differential_note = (
+            f"Hệ thống nghiêng về {pred_disease}, nhưng nhận thấy đặc điểm "
+            f"rất gần với {top2_disease}. "
+            f"Khuyến nghị kiểm tra thêm mặt dưới lá hoặc biểu hiện cành trước khi dùng thuốc."
+        )
+    elif show_top2:
+        differential_note = prediction.get("differential_note", "")
+    else:
+        differential_note = ""
 
     return {
         "result": get_disease_knowledge_by_name(prediction["pred_class"]),
@@ -70,22 +75,16 @@ def _predict_sync(image: Image.Image) -> dict[str, Any]:
         "top2_confidence": top2_confidence,
         "show_top2": show_top2,
         "is_uncertain": bool(prediction["is_uncertain"]),
-        "differential_note": prediction["differential_note"] if show_top2 else "",
-        "annotated_image": pil_to_base64(prediction["annotated_image"]),
-        "original_image": pil_to_base64(image),
+        "differential_note": differential_note,
+        "annotated_image": prediction["annotated_image"],
+        "original_image": image,
         "details": {
-            "pred_class": prediction["pred_class"],
-            "confidence": round(float(prediction["confidence"]), 4),
-            "top2_class": top2_class or "None",
-            "top2_confidence": top2_confidence,
-            "is_uncertain": bool(prediction["is_uncertain"]),
-            "differential_note": prediction["differential_note"] if show_top2 else "",
             "method": prediction["method"],
-            "num_boxes": len(boxes),
+            "selected_branch": prediction["selected_branch"],
             "detected_boxes": boxes,
-            "big_branch": branch_details(prediction["big_branch"]),
+            "big_branch": branch_details(prediction["big_branch"], "big"),
             "small_branch": {
-                **branch_details(prediction["small_branch"]),
+                **branch_details(prediction["small_branch"], "small"),
                 "box_predictions": small_box_predictions,
             },
             "elapsed_seconds": prediction["elapsed_seconds"],

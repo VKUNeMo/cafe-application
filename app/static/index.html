@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Hệ thống nhận diện bệnh lá cà phê đa thang đo AI - YOLOv8s Slicing + ResNet Big & Small + Ensemble v5. Nhận diện 8 loại bệnh, chẩn đoán phân biệt Top-2 và gợi ý phác đồ điều trị chuẩn cf-api.">
-    <title>☘️ Chẩn Đoán Bệnh Lá Cà Phê | AI Multi-Scale Pipeline v4</title>
+    <meta name="description" content="Hệ thống nhận diện bệnh lá cà phê đa thang đo AI - YOLOv8s Slicing + ResNet Big & Small + Ensemble Precision. Nhận diện 8 loại bệnh, chẩn đoán phân biệt Top-2 và gợi ý phác đồ điều trị chuẩn cf-api.">
+    <title>☘️ Chẩn Đoán Bệnh Lá Cà Phê | AI Ensemble Precision</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +24,7 @@
             <div class="hero__content">
                 <div class="hero__badge">
                     <span class="hero__badge-icon">🧠</span>
-                    <span>Multi-Scale AI Pipeline & Decision Engine v4</span>
+                    <span>Multi-Scale AI & Ensemble Precision</span>
                 </div>
                 <h1 class="hero__title">
                     <span class="hero__title-icon">☘️</span>
@@ -33,8 +33,8 @@
                 </h1>
                 <p class="hero__desc">
                     Ứng dụng trí tuệ nhân tạo đa thang đo <strong>YOLOv8s Slicing + ResNet Big & Small</strong> 
-                    kết hợp bộ quy tắc suy luận <strong>Ensemble v4 (Disease-Aware & Multi-Gate)</strong>. 
-                    Tự động nhận diện 8 loại bệnh, chẩn đoán phân biệt Top-2 với độ phủ lâm sàng <strong>96.67%</strong> 
+                    kết hợp bộ quy tắc suy luận <strong>Ensemble Precision</strong>.
+                    Nhận diện 8 lớp lá cà phê và hiển thị nhãn thay thế khi kết quả còn phân vân
                     và tự động đề xuất phác đồ điều trị chi tiết.
                 </p>
                 <div class="hero__stats">
@@ -43,12 +43,12 @@
                         <span class="hero__stat-label">Loại bệnh học</span>
                     </div>
                     <div class="hero__stat">
-                        <span class="hero__stat-value">96.67%</span>
-                        <span class="hero__stat-label">Độ phủ Top-2</span>
+                        <span class="hero__stat-value">Big + Small</span>
+                        <span class="hero__stat-label">Hai góc nhìn</span>
                     </div>
                     <div class="hero__stat">
-                        <span class="hero__stat-value">Ensemble v4</span>
-                        <span class="hero__stat-label">8 Quy tắc Gating</span>
+                        <span class="hero__stat-value">Ensemble Precision</span>
+                        <span class="hero__stat-label">Đồng thuận & Precision</span>
                     </div>
                     <div class="hero__stat">
                         <span class="hero__stat-value">REST API</span>
@@ -106,8 +106,8 @@
                 <div class="pipeline-step">
                     <div class="pipeline-step__icon">🧬</div>
                     <div class="pipeline-step__num">03</div>
-                    <h3>Ensemble v4 Đa Tầng</h3>
-                    <p>Phối hợp ResNet Big (vĩ mô) + ResNet Small (vi mô) qua 8 quy tắc Gating chuyên biệt</p>
+                    <h3>Ensemble Precision Đa Tầng</h3>
+                    <p>Hai nhánh cùng nhãn thì giữ kết quả; khác nhãn thì ưu tiên dự đoán có precision theo lớp cao hơn</p>
                 </div>
                 <div class="pipeline-step__arrow">→</div>
                 <div class="pipeline-step">
@@ -223,8 +223,8 @@
                 <div class="loading__spinner">
                     <div class="loading__leaf">🍃</div>
                 </div>
-                <p class="loading__text">Đang phân tích ảnh qua AI Pipeline v4...</p>
-                <p class="loading__sub">YOLOv8s quét lát cắt vi mô → ResNet Big (224×224) & Small (224×224) → Ensemble v4 (Top-2 & Gating Engine)</p>
+                <p class="loading__text">Đang phân tích ảnh qua Ensemble Precision...</p>
+                <p class="loading__sub">YOLOv8s quét lát cắt vi mô → ResNet Big (224×224) & Small (224×224) → Ensemble Precision (Precision theo lớp)</p>
             </div>
 
             <!-- Results -->
@@ -236,7 +236,7 @@
                             <span class="result-card__label">KẾT QUẢ CHẨN ĐOÁN AI (TOP 1)</span>
                         </div>
                         <div class="result-card__meta">
-                            <span class="result-card__badge" id="result-method">Ensemble v4</span>
+                            <span class="result-card__badge" id="result-method">Ensemble Precision</span>
                             <span class="result-card__time-badge" id="result-elapsed">⚡ 0.18s</span>
                         </div>
                     </div>
@@ -364,7 +364,7 @@
                     <div class="active-rule-card" id="active-rule-card">
                         <div class="active-rule-icon">⚙️</div>
                         <div class="active-rule-content">
-                            <div class="active-rule-title">Quy Tắc Quyết Định Ensemble v4</div>
+                            <div class="active-rule-title">Quy Tắc Quyết Định Ensemble Precision</div>
                             <div class="active-rule-desc" id="active-rule-desc">Đang tải quy tắc suy luận...</div>
                         </div>
                     </div>
@@ -373,7 +373,7 @@
                     <div class="branch branch--ensemble" id="branch-ensemble">
                         <div class="branch__header is-static">
                             <span class="branch__icon">📊</span>
-                            <span class="branch__name">Phân Bổ Xác Suất Tổng Hợp (Ensemble Probabilities - 8 Lớp)</span>
+                            <span class="branch__name">Điểm Phân Loại Của Nhánh Được Chọn (8 Lớp)</span>
                         </div>
                         <div class="branch__body open" id="branch-ensemble-body">
                             <div class="branch__probs" id="ensemble-probs"></div>

@@ -24,6 +24,11 @@ async def serve_index():
 
 @router.get("/image-cafe-input/{filename}")
 async def serve_image(filename: str, current_user_id: str = Depends(get_current_user_id)):
+    """Phục vụ file ảnh qua URL ảo /image-cafe-input/{filename}.
+    
+    Lưu ý: Ảnh vật lý được lưu trữ tại `storage/uploads/` (cấu hình qua Settings.upload_dir).
+    Endpoint này kiểm tra quyền sở hữu ảnh (owns_image) trước khi trả về file.
+    """
     image_path = get_settings().upload_dir / filename
     if Path(filename).name != filename or not image_path.is_file() or not await owns_image(current_user_id, filename):
         raise HTTPException(status_code=404, detail="Không tìm thấy ảnh.")

@@ -1,14 +1,14 @@
 import { api } from './api.js';
 
 /**
- * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Pipeline v5)
+ * COFFEE LEAF DISEASE DETECTION & TREATMENT — Frontend JavaScript (Ensemble Precision)
  * ==============================================================================
  * Tương thích chuẩn RESTful coung21/cf-api:
  * - Camera API, Geolocation API, File Drag & Drop
- * - Gọi POST /predictor/predict (Pipeline v5: YOLOv8s Slicing + ResNet Big/Small + Ensemble v5)
+ * - Gọi POST /predictor/predict (Pipeline Precision: YOLOv8s Slicing + ResNet Big/Small + Ensemble Precision)
  * - Chẩn đoán phân biệt Top-2 (Differential Diagnosis) & Cảnh báo phân vân lâm sàng (Uncertainty Flag)
  * - Phác đồ điều trị 2 chế độ (Interactive Treatment Tabs: Top-1 vs Top-2)
- * - Chi tiết suy luận đa tầng (Ensemble 8-class Probabilities, Active Rule Trace, Big/Small Breakdown)
+ * - Chi tiết suy luận đa tầng (Selected branch 8-class scores, Active Rule Trace, Big/Small Breakdown)
  * - Quản lý lịch sử dịch tễ với bộ lọc theo loại bệnh (Filter Chips)
  */
 
@@ -23,6 +23,13 @@ import { api } from './api.js';
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[character]));
+    const resolveImageUrl = (pathOrName) => {
+        if (!pathOrName) return '';
+        if (pathOrName.startsWith('/') || pathOrName.startsWith('http://') || pathOrName.startsWith('https://')) {
+            return pathOrName;
+        }
+        return `/image-cafe-input/${pathOrName}`;
+    };
 
     // Upload & Form
     const uploadArea     = $('#upload-area');
@@ -411,7 +418,7 @@ import { api } from './api.js';
         $('#result-confidence').textContent = (conf * 100).toFixed(1) + '%';
 
         // Method & Time badge
-        const methodRaw = details.method || 'Ensemble v5';
+        const methodRaw = details.method || 'Ensemble Precision';
         const methodShort = methodRaw.split('(')[0].trim();
         $('#result-method').textContent = methodShort;
 
@@ -445,8 +452,6 @@ import { api } from './api.js';
 
                 const top2Obj = data.top2_result || {};
                 const top2Name = top2Obj.disease || top2Obj.name || data.top2_name || (details.top2_class || 'Bệnh nghi ngờ số 2');
-                const top2ConfVal = (data.top2_confidence !== undefined && data.top2_confidence !== null) ? data.top2_confidence : (details.top2_confidence || 0.0);
-                const top2ConfPct = (top2ConfVal * 100).toFixed(1) + '%';
 
                 const gTop1Name = $('#diff-grid-top1-name');
                 const gTop1Conf = $('#diff-grid-top1-conf');
@@ -459,7 +464,7 @@ import { api } from './api.js';
                 if (gTop1Name) gTop1Name.textContent = top1Name;
                 if (gTop1Conf) gTop1Conf.textContent = top1ConfPct;
                 if (gTop2Name) gTop2Name.textContent = top2Name;
-                if (gTop2Conf) gTop2Conf.textContent = top2ConfPct;
+                if (gTop2Conf) gTop2Conf.hidden = true;
 
                 if (data.is_uncertain) {
                     diffBanner.classList.add('is-uncertain');
@@ -511,13 +516,13 @@ import { api } from './api.js';
         }
 
         // ---- 4. Images Comparison ----
-        const originalSrc = data.original_image ? 'data:image/jpeg;base64,' + data.original_image : data.image_url;
-        const annotatedSrc = data.annotated_image ? 'data:image/jpeg;base64,' + data.annotated_image : data.image_url;
+        const originalSrc = resolveImageUrl(data.image_url);
+        const annotatedSrc = resolveImageUrl(data.annotated_image_url) || originalSrc;
         $('#result-original').src = originalSrc;
         $('#result-annotated').src = annotatedSrc;
 
         // Detection Count Badge
-        const numBoxes = details.num_boxes || 0;
+        const numBoxes = (details.detected_boxes || []).length;
         const countBadge = $('#detection-count');
         if (countBadge) {
             countBadge.textContent = `${numBoxes} vùng tổn thương phát hiện`;
@@ -527,8 +532,8 @@ import { api } from './api.js';
         // Active Decision Rule
         renderActiveRuleBanner(details.method);
 
-        // Combined Ensemble Probabilities Bar Chart (8 classes)
-        renderEnsembleCombinedChart(big.all_probs, small.all_probs, resObj.name);
+        // Selected branch score chart (8 classes)
+        renderSelectedBranchChart(big.all_probs, small.all_probs, resObj.name, details.selected_branch);
 
         // Big Branch
         if (big.class || big.pred_class) {
@@ -643,60 +648,23 @@ import { api } from './api.js';
         if (!descEl) return;
 
         const explanations = {
-            agreement: 'Hai nhánh Big và Small cùng dự đoán một bệnh.',
-            small_specialist_miner_phoma: 'Nhánh Small được ưu tiên khi phân biệt Miner và Phoma.',
-            big_confident_miner_phoma: 'Nhánh Big được ưu tiên khi Small chưa đủ tin cậy.',
-            big_healthy_no_box: 'Nhánh Big dự đoán lá khỏe và YOLO không tìm thấy vùng bệnh.',
-            small_high_conf_disease_override: 'Nhánh Small nhận bệnh với độ tin cậy cao nên ghi đè dự đoán lá khỏe.',
-            big_healthy_precedence: 'Nhánh Big được ưu tiên khi Small chưa đủ bằng chứng để ghi đè lá khỏe.',
-            small_rust_override: 'Nhánh Small được ưu tiên khi nhận diện gỉ sắt.',
-            big_specialist_nematode_anthracnose: 'Nhánh Big được ưu tiên khi nhận diện tuyến trùng hoặc thán thư.',
-            small_mealy_extreme_conf: 'Nhánh Small nhận diện rệp sáp với độ tin cậy rất cao.',
-            reject_small_mealy_false_alarm: 'Nhánh Big được ưu tiên để giảm báo nhầm rệp sáp.',
-            small_confident_rescue: 'Nhánh Small được ưu tiên khi Big chưa đủ tin cậy.',
-            small_confident_cross_check: 'Nhánh Small được ưu tiên sau bước kiểm tra chéo.',
-            big_confident: 'Nhánh Big được ưu tiên nhờ độ tin cậy cao.',
-            default_big: 'Nhánh Big có độ tin cậy cao hơn.',
-            default_small: 'Nhánh Small có độ tin cậy cao hơn.',
-            default_big_over_small_mealy: 'Nhánh Big được ưu tiên để giảm báo nhầm rệp sáp.'
+            agreement: 'Hai nhánh cùng nhãn. Giữ nhãn chung và lấy điểm confidence cao hơn.',
+            precision_big: 'Chọn Big: precision của Big tại nhãn Big dự đoán cao hơn precision của Small tại nhãn Small dự đoán.',
+            precision_small: 'Chọn Small: precision của Small tại nhãn Small dự đoán cao hơn precision của Big tại nhãn Big dự đoán.',
+            precision_tie_big: 'Hai precision bằng nhau, ưu tiên nhánh Big.'
         };
-        descEl.textContent = explanations[methodStr] || methodStr || 'Ensemble v5';
+        descEl.textContent = explanations[methodStr] || methodStr || 'Ensemble Precision';
     }
 
-    function renderEnsembleCombinedChart(bigProbs, smallProbs, topClass) {
+    function renderSelectedBranchChart(bigProbs, smallProbs, topClass, selectedBranch) {
         const container = $('#ensemble-probs');
         if (!container) return;
-        container.innerHTML = '';
-
-        const allClasses = ['healthy', 'rust', 'phoma', 'miner', 'corticium', 'mealy', 'nematode', 'anthracnose'];
-        const combined = {};
-
-        allClasses.forEach(cls => {
-            const b = bigProbs ? (bigProbs[cls] || 0) : 0;
-            const s = smallProbs ? (smallProbs[cls] || 0) : 0;
-            combined[cls] = (b * 0.55) + (s * 0.45);
-        });
-
-        const sorted = Object.entries(combined).sort((a, b) => b[1] - a[1]);
-
-        sorted.forEach(([cls, prob]) => {
-            const isTop = cls.toLowerCase() === (topClass || '').toLowerCase();
-            const row = document.createElement('div');
-            row.className = 'prob-row' + (isTop ? ' is-top' : '');
-
-            const pct = (prob * 100).toFixed(1);
-            const icon = diseaseIcons[cls.toLowerCase()] || '🍃';
-            const viName = diseaseVietnamese[cls.toLowerCase()] || cls;
-
-            row.innerHTML = `
-                <span class="prob-row__name" title="${viName}">${icon} ${cls}</span>
-                <div class="prob-row__bar">
-                    <div class="prob-row__fill" style="width: ${pct}%; background: ${diseaseColors[cls.toLowerCase()] || '#2d6a4f'}"></div>
-                </div>
-                <span class="prob-row__val">${pct}%</span>
-            `;
-            container.appendChild(row);
-        });
+        const probs = selectedBranch === 'big' ? bigProbs : selectedBranch === 'small' ? smallProbs : null;
+        if (!probs) {
+            container.textContent = 'Bản ghi này chưa có thông tin nhánh được chọn.';
+            return;
+        }
+        renderProbBars('ensemble-probs', probs, topClass);
     }
 
     function renderProbBars(containerId, probs, topClass) {
@@ -778,11 +746,11 @@ import { api } from './api.js';
             const coordsText = item.coords ? `${item.coords.lat}, ${item.coords.long}` : 'Chưa có tọa độ';
 
             const uncertainTag = item.is_uncertain ? `<span class="history-card__tag-uncertain">⚠️ Phân vân</span>` : '';
-            const top2Line = item.top2_name ? `<div class="history-card__top2">Top 2: ${escapeHtml(item.top2_name)} (${((item.top2_confidence || 0) * 100).toFixed(1)}%)</div>` : '';
+            const top2Line = item.top2_name ? `<div class="history-card__top2">Top 2: ${escapeHtml(item.top2_name)}</div>` : '';
 
             card.innerHTML = `
                 <div class="history-card__thumb">
-                    <img src="${escapeHtml(item.image_url)}" alt="Ảnh chẩn đoán">
+                    <img src="${escapeHtml(resolveImageUrl(item.image_url))}" alt="Ảnh chẩn đoán">
                 </div>
                 <div class="history-card__body">
                     <div class="history-card__disease">
@@ -820,22 +788,19 @@ import { api } from './api.js';
                 result: data.result,
                 confidence: data.confidence,
                 top2_result: data.top2_result,
-                top2_confidence: data.top2_confidence || 0.0,
                 is_uncertain: data.is_uncertain || false,
                 differential_note: data.differential_note || '',
                 image_url: data.image_url,
-                original_image: null,
-                annotated_image: null,
+                annotated_image_url: data.annotated_image_url || data.image_url,
                 details: {
-                    pred_class: data.result ? data.result.name : 'Unknown',
                     method: 'Lịch sử lưu trữ (Chi tiết phác đồ)',
-                    num_boxes: 0,
+                    detected_boxes: [],
                     big_branch: {},
                     small_branch: {}
                 }
             });
-            $('#result-original').src = data.image_url;
-            $('#result-annotated').src = data.image_url;
+            $('#result-original').src = resolveImageUrl(data.image_url);
+            $('#result-annotated').src = resolveImageUrl(data.annotated_image_url) || resolveImageUrl(data.image_url);
             historySection.style.display = 'none';
 
         } catch (err) {

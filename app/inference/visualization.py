@@ -51,7 +51,7 @@ def draw_visual_overlay(
         # Trạng thái phân vân hoặc khi bật hiển thị Top-2
         title_text = f"Top-1: {pred_class} ({confidence * 100:.1f}%)"
         if top2_class != "None" and top2_confidence > 0:
-            title_text += f"  |  Phan van Top-2: {top2_class} ({top2_confidence * 100:.1f}%)"
+            title_text += f"  |  Phan van Top-2: {top2_class}"
         if is_uncertain:
             title_text += " [CANH BAO PHAN VAN]"
 
